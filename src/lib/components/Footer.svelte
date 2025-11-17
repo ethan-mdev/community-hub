@@ -1,0 +1,24 @@
+<footer
+  class=" text-gray-400 py-12 border-t border-neutral-700 text-center"
+>
+  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 px-6">
+    <div>
+      <h4 class="font-bold mb-4 text-gray-100">Quick Links</h4>
+      <ul class="space-y-2">
+        <li><a href="/" class="hover:text-amber-400">Register</a></li>
+        <li><a href="/" class="hover:text-amber-400">Download</a></li>
+        <li><a href="/" class="hover:text-amber-400">Dashboard</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-bold mb-4">Follow Us</h4>
+      <ul class="space-y-2">
+        <li><a href="/" class="hover:text-amber-400">Discord</a></li>
+        <li><a href="/" class="hover:text-amber-400">YouTube</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="text-center mt-8 border-t border-neutral-700 pt-6 text-gray-500">
+    © 2025 Ethan Moore. All rights reserved.
+  </div>
+</footer>
