@@ -28,6 +28,7 @@ db.exec(`
         name TEXT NOT NULL,
         description TEXT,
         image TEXT,
+        slug TEXT UNIQUE,
         is_locked BOOLEAN DEFAULT 0,
         FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
     );
@@ -83,6 +84,7 @@ export type DbCategory = {
     description: string | null;
     image: string | null;
     is_locked: boolean;
+    slug: string;
     thread_count?: number;
 };
 

@@ -34,14 +34,11 @@
                 {#if category.children && category.children.length > 0}
                     <div class="p-4 space-y-3">
                         {#each category.children as sub}
-                            <a href="/forum/category/{sub.id}" class="block p-4 bg-neutral-800/50 hover:bg-neutral-800 rounded-lg transition group">
+                            <a href="/forum/category/{sub.slug}" class="block p-4 bg-neutral-800/50 hover:bg-neutral-800 rounded-lg transition group">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-1">
                                             <h3 class="font-semibold text-gray-100 group-hover:text-amber-400 transition">{sub.name}</h3>
-                                            {#if sub.is_locked}
-                                                <span class="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded">Locked</span>
-                                            {/if}
                                         </div>
                                         {#if sub.description}
                                             <p class="text-sm text-gray-400">{sub.description}</p>
