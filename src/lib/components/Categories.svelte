@@ -12,7 +12,7 @@
         {#each categories as category}
             <div class="rounded-xl bg-neutral-900/80 ring-1 ring-neutral-800 overflow-hidden">
                 <!-- Category Header -->
-                <div class="bg-gradient-to-r from-amber-500/10 to-transparent p-4 border-b border-neutral-800">
+                <div class="bg-linear-to-r from-amber-500/10 to-transparent p-4 border-b border-neutral-800">
                     <div class="flex items-center gap-3">
                         <div class="w-6 h-6 rounded-full overflow-hidden">
                             {#if category.image}
@@ -34,7 +34,7 @@
                 {#if category.children && category.children.length > 0}
                     <div class="p-4 space-y-3">
                         {#each category.children as sub}
-                            <a href="/forum/category/{sub.slug}" class="block p-4 bg-neutral-800/50 hover:bg-neutral-800 rounded-lg transition group">
+                            <a href="/{sub.slug}" class="block p-4 bg-neutral-800/50 hover:bg-neutral-800 rounded-lg transition group">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-1">

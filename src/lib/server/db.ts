@@ -88,6 +88,19 @@ export type DbCategory = {
     thread_count?: number;
 };
 
+export type DbThread = {
+    id: number;
+    category_id: string;
+    title: string;
+    author_id: string;
+    created_at: string;
+    updated_at: string;
+    is_locked: boolean;
+    is_sticky: boolean;
+    is_deleted: boolean;
+    author_username?: string;
+};
+
 // --- User-related functions ---
 export function createUser(email: string, username: string, password_hash: string): DbUser {
     const id = randomUUID();
@@ -119,7 +132,7 @@ export function getCategoriesWithChildren(): (DbCategory & { children: (DbCatego
                 thread_count: getNumberOfThreads(child.id)
             }))
     }));
-}
+};
 
 // --- Thread related functions ---
 export function getNumberOfThreads(categoryId: string): number {
@@ -136,7 +149,40 @@ export function getTotalThreadCount(): number {
         WHERE is_deleted = 0
     `).get() as { count: number };
     return row.count;
-}
+};
+
+// --- Post related functions ---
+export function getTotalPostCount(): number {
+    const row = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM posts 
+        WHERE is_deleted = 0
+    `).get() as { count: number };
+    return row.count;
+};
+
+export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThread & { author_username: string })[] }) | null {
+    // Get the category
+    const category = db.prepare(`SELECT * FROM categories WHERE slug = ?`).get(slug) as DbCategory | undefined;
+    
+    if (!category) {
+        return null;
+    }
+    
+    // Get threads for this category with author username
+    const threads = db.prepare(`
+        SELECT *, users.username as author_username
+        FROM threads
+        LEFT JOIN users ON threads.author_id = users.id
+        WHERE threads.category_id = ? AND threads.is_deleted = 0
+        ORDER BY threads.is_sticky DESC, threads.updated_at DESC
+    `).all(category.id) as (DbThread & { author_username: string })[];
+    
+    return {
+        ...category,
+        threads
+    };
+};
 
 // Initialize seed data on first run
 import { seedDatabase } from './seed.js';

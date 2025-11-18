@@ -1,11 +1,11 @@
-import { getCategoriesWithChildren, getTotalThreadCount } from '$lib/server/db.js';
+import { getCategoriesWithChildren, getTotalThreadCount, getTotalPostCount } from '$lib/server/db.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
     try {
         const categories = getCategoriesWithChildren();
         const totalThreads = getTotalThreadCount();
-        const totalPosts = 0; // Placeholder for total posts, implement when post tracking is added
+        const totalPosts = getTotalPostCount();
         
         return {
             categories,
