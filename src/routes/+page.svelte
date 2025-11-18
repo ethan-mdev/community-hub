@@ -1,8 +1,11 @@
 <script>
-	import Header from "$lib/components/Header.svelte";
+    import Header from "$lib/components/Header.svelte";
     import Categories from "$lib/components/Categories.svelte";
+    
+    let { data } = $props();
 </script>
+
 <div class="container mx-auto max-w-6xl px-4 py-8">
-    <Header />
-    <Categories />
+    <Header totalThreads={data.totalThreads} totalPosts={data.totalPosts} />
+    <Categories categories={data.categories} />
 </div>
