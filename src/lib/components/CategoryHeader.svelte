@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { DbCategory } from '$lib/server/db';
-    
-    let { category }: { category: DbCategory & { threads: any[] } } = $props();
+    import type { AuthenticatedUser } from "$lib/server/auth";
+    let { category, user }: { category: DbCategory & { threads: any[] }, user: AuthenticatedUser | null } = $props();
 </script>
 
 <!-- Category header card -->
@@ -18,6 +18,7 @@
             </div>
 
             <!-- New thread button -->
+            {#if user && category.is_locked !== true}
             <button
                 class="flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-3 font-semibold text-neutral-900 transition hover:bg-amber-600"
                 type="button"
@@ -31,9 +32,9 @@
                 </svg>
                 New Thread
             </button>
+            {/if}
         </div>
     </div>
-
     <!-- Sort / count bar -->
     <div class="flex items-center justify-between gap-4 bg-neutral-800/30 p-4">
         <div class="flex items-center gap-3">

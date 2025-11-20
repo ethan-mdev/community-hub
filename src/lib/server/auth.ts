@@ -26,7 +26,7 @@ export function getAuthenticatedUser(event: RequestEvent): AuthenticatedUser | n
     return sanitizeUser(sessionWithUser.user);
 }
 
-export async function registerUser(event: RequestEvent, username: string, email: string, password: string): Promise<AuthenticatedUser> {
+export async function registerUser(event: RequestEvent, email: string, username: string, password: string): Promise<AuthenticatedUser> {
     const passwordHash = await bcrypt.hash(password, 12);
     const user = createUser(email, username, passwordHash);
     const session = createSession(user.id);

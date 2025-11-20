@@ -12,16 +12,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
     login: async (event) => {
         const data = await event.request.formData();
-        const email = String(data.get('email') || '').trim();
+        const username = String(data.get('username') || '').trim();
         const password = String(data.get('password') || '');
 
-        if (!email || !password) {
-            return fail(400, { error: 'Email and password required', email });
+        if (!username || !password) {
+            return fail(400, { error: 'Username and password required', username });
         }
 
-        const user = await loginUser(event, email, password);
+        const user = await loginUser(event, username, password);
         if (!user) {
-            return fail(400, { error: 'Invalid email or password', email });
+            return fail(400, { error: 'Invalid username or password', username });
         }
 
         throw redirect(303, '/');
