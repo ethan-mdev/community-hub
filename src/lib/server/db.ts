@@ -134,6 +134,14 @@ export function getUserByUsername(username: string): DbUser | undefined {
     return row || undefined;
 }
 
+export function updateUserProfileImage(userId: string, profileImage: string): void {
+    db.prepare(`
+        UPDATE users 
+        SET profile_image = ? 
+        WHERE id = ?
+    `).run(profileImage, userId);
+}
+
 // --- Session-related functions ---
 export function createSession(userId: string): DbSession {
     const id = randomUUID();

@@ -1,7 +1,20 @@
 <script lang="ts">
 	import type { AuthenticatedUser } from "$lib/server/auth";
+    import ProfileModal from "./ProfileModal.svelte";
 
     let { totalThreads = 0, totalPosts = 0, user}: { totalThreads: number, totalPosts: number, user: AuthenticatedUser | null } = $props();
+    
+    let showProfileModal = $state(false);
+
+    function openProfileModal() {
+        if (user) {
+            showProfileModal = true;
+        }
+    }
+
+    function closeProfileModal() {
+        showProfileModal = false;
+    }
 </script>
 
 <header class="mb-8">
@@ -37,13 +50,19 @@
 
             <div class="flex items-center gap-3 ml-3 pl-3 border-l border-neutral-700">
                 {#if user}
-                    <img src={user.profile_image ? `/avatars/${user.profile_image}` : '/avatars/avatar-1.png'} alt="User Avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-amber-500/50" />
-                    <div class="flex flex-col items-start">
-                        <span class="text-sm font-semibold text-gray-100">{user.username}</span>
-                        <div class="flex gap-1">
-                            <span class="px-1.5 py-0.5 bg-slate-500/20 text-slate-300 text-xs font-semibold rounded">MEMBER</span>
+                    <button 
+                        type="button"
+                        onclick={openProfileModal}
+                        class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    >
+                        <img src={user.profile_image ? `/avatars/${user.profile_image}` : '/avatars/avatar-1.png'} alt="User Avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-amber-500/50" />
+                        <div class="flex flex-col items-start">
+                            <span class="text-sm font-semibold text-gray-100">{user.username}</span>
+                            <div class="flex gap-1">
+                                <span class="px-1.5 py-0.5 bg-slate-500/20 text-slate-300 text-xs font-semibold rounded">MEMBER</span>
+                            </div>
                         </div>
-                    </div>
+                    </button>
                 {:else}
                     <img src="/avatars/avatar-1.png" alt="Default Avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-amber-500/50" />
                     <div class="flex flex-col items-start">
@@ -57,3 +76,11 @@
         </div>
     </div>
 </div>
+
+{#if user && showProfileModal}
+    <ProfileModal 
+        isOpen={showProfileModal} 
+        {user} 
+        onClose={closeProfileModal} 
+    />
+{/if}
