@@ -101,6 +101,17 @@ export type DbThread = {
     author_username?: string;
 };
 
+export type DbPost = {
+    id: number;
+    thread_id: number;
+    author_id: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+    is_deleted: boolean;
+    author_username?: string;
+};
+
 // --- User-related functions ---
 export function createUser(email: string, username: string, password_hash: string): DbUser {
     const id = randomUUID();
@@ -118,6 +129,55 @@ export function getUserById(id: string): DbUser | undefined {
     return row || undefined;
 };
 
+// --- Session-related functions ---
+export function createSession(userId: string): DbSession {
+    const id = randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    db.prepare(`
+        INSERT INTO sessions (id, user_id, created_at, expires_at)
+        VALUES (?, ?, ?, ?)
+    `).run(id, userId, now.toISOString(), expiresAt.toISOString());
+
+    return {
+        id,
+        user_id: userId,
+        created_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+    };
+}
+
+export function getUserFromSession(sessionId: string): { session: DbSession; user: DbUser } | undefined {
+    const row = db.prepare(`
+        SELECT s.*, u.*
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.id = ? AND s.expires_at > CURRENT_TIMESTAMP
+    `).get(sessionId) as (DbSession & DbUser) | undefined;
+
+    if (!row) {
+        return undefined;
+    }
+
+    const session: DbSession = {
+        id: row.id,
+        user_id: row.user_id,
+        created_at: row.created_at,
+        expires_at: row.expires_at
+    };
+
+    const user: DbUser = {
+        id: row.id,
+        email: row.email,
+        username: row.username,
+        password_hash: row.password_hash,
+        created_at: row.created_at,
+        profile_image: row.profile_image
+    };
+
+    return { session, user };
+}
+
 // --- Category-related functions ---
 export function getCategoriesWithChildren(): (DbCategory & { children: (DbCategory & { thread_count: number })[] })[] {
     // Get parent categories (no parent_id)
@@ -132,34 +192,7 @@ export function getCategoriesWithChildren(): (DbCategory & { children: (DbCatego
                 thread_count: getNumberOfThreads(child.id)
             }))
     }));
-};
-
-// --- Thread related functions ---
-export function getNumberOfThreads(categoryId: string): number {
-    const row = db.prepare(`
-        SELECT COUNT(*) as count FROM threads WHERE category_id = ?
-    `).get(categoryId) as { count: number };
-    return row.count;
-};
-
-export function getTotalThreadCount(): number {
-    const row = db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM threads 
-        WHERE is_deleted = 0
-    `).get() as { count: number };
-    return row.count;
-};
-
-// --- Post related functions ---
-export function getTotalPostCount(): number {
-    const row = db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM posts 
-        WHERE is_deleted = 0
-    `).get() as { count: number };
-    return row.count;
-};
+}
 
 export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThread & { author_username: string })[] }) | null {
     // Get the category
@@ -171,18 +204,56 @@ export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThr
     
     // Get threads for this category with author username
     const threads = db.prepare(`
-        SELECT *, users.username as author_username
-        FROM threads
-        LEFT JOIN users ON threads.author_id = users.id
-        WHERE threads.category_id = ? AND threads.is_deleted = 0
-        ORDER BY threads.is_sticky DESC, threads.updated_at DESC
+        SELECT t.*, u.username as author_username
+        FROM threads t
+        LEFT JOIN users u ON t.author_id = u.id
+        WHERE t.category_id = ? AND t.is_deleted = 0
+        ORDER BY t.is_sticky DESC, t.updated_at DESC
     `).all(category.id) as (DbThread & { author_username: string })[];
     
     return {
         ...category,
         threads
     };
-};
+}
+
+// --- Thread related functions ---
+export function getNumberOfThreads(categoryId: string): number {
+    const row = db.prepare(`
+        SELECT COUNT(*) as count FROM threads WHERE category_id = ?
+    `).get(categoryId) as { count: number };
+    return row.count;
+}
+
+export function getTotalThreadCount(): number {
+    const row = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM threads 
+        WHERE is_deleted = 0
+    `).get() as { count: number };
+    return row.count;
+}
+
+// --- Post related functions ---
+export function getTotalPostCount(): number {
+    const row = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM posts 
+        WHERE is_deleted = 0
+    `).get() as { count: number };
+    return row.count;
+}
+
+export function getPostsByThreadId(threadId: number): (DbPost & { author_username: string })[] {
+    const posts = db.prepare(`
+        SELECT posts.*, users.username as author_username
+        FROM posts
+        LEFT JOIN users ON posts.author_id = users.id
+        WHERE posts.thread_id = ? AND posts.is_deleted = 0
+        ORDER BY posts.created_at ASC
+    `).all(threadId) as (DbPost & { author_username: string })[];
+    return posts;
+}
 
 // Initialize seed data on first run
 import { seedDatabase } from './seed.js';
