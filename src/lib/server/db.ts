@@ -129,6 +129,11 @@ export function getUserById(id: string): DbUser | undefined {
     return row || undefined;
 };
 
+export function getUserByUsername(username: string): DbUser | undefined {
+    const row = db.prepare(`SELECT * FROM users WHERE username = ?`).get(username) as DbUser | undefined;
+    return row || undefined;
+}
+
 // --- Session-related functions ---
 export function createSession(userId: string): DbSession {
     const id = randomUUID();
@@ -147,7 +152,7 @@ export function createSession(userId: string): DbSession {
     };
 }
 
-export function getUserFromSession(sessionId: string): { session: DbSession; user: DbUser } | undefined {
+export function getUserWithSession(sessionId: string): { session: DbSession; user: DbUser } | undefined {
     const row = db.prepare(`
         SELECT s.*, u.*
         FROM sessions s
@@ -155,9 +160,7 @@ export function getUserFromSession(sessionId: string): { session: DbSession; use
         WHERE s.id = ? AND s.expires_at > CURRENT_TIMESTAMP
     `).get(sessionId) as (DbSession & DbUser) | undefined;
 
-    if (!row) {
-        return undefined;
-    }
+    if (!row) return undefined;
 
     const session: DbSession = {
         id: row.id,
@@ -176,6 +179,10 @@ export function getUserFromSession(sessionId: string): { session: DbSession; use
     };
 
     return { session, user };
+}
+
+export function deleteSession(sessionId: string): void {
+    db.prepare(`DELETE FROM sessions WHERE id = ?`).run(sessionId);
 }
 
 // --- Category-related functions ---
@@ -198,9 +205,7 @@ export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThr
     // Get the category
     const category = db.prepare(`SELECT * FROM categories WHERE slug = ?`).get(slug) as DbCategory | undefined;
     
-    if (!category) {
-        return null;
-    }
+    if (!category) return null;
     
     // Get threads for this category with author username
     const threads = db.prepare(`
