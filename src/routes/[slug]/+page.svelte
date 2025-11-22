@@ -4,8 +4,9 @@
     import CategoryHeader from '$lib/components/CategoryHeader.svelte';
     import ThreadList from '$lib/components/ThreadList.svelte';
     import type { AuthenticatedUser } from "$lib/server/auth";
+    import type { PageData } from './$types';
 
-    let { data }: { data: { category: DbCategory & { threads: DbThread[] }, user: AuthenticatedUser | null } } = $props();
+    let { data, form }: { data: PageData, form: any } = $props();
 </script>
 
 <main class="container mx-auto max-w-6xl px-4 py-8">
@@ -13,6 +14,6 @@
         { label: 'Forums', href: '/' },
         { label: data.category.name }
     ]} />
-    <CategoryHeader category={data.category } user={data.user} />
+    <CategoryHeader category={data.category } user={data.user} {form} />
     <ThreadList threads={data.category.threads} categorySlug={data.category.slug} />
 </main>

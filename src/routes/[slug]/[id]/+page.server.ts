@@ -1,8 +1,8 @@
-import { getPostsByThreadId, getThreadById } from '$lib/server/db.js';
+import { getPostsByThreadId, getThreadById, createPost, getTotalPostsInThread } from '$lib/server/db.js';
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
     try {
         const threadId = Number(params.id);
         const thread = getThreadById(threadId);
@@ -11,14 +11,69 @@ export const load: PageServerLoad = async ({ params }) => {
             throw error(404, 'Thread not found');
         }
         
-        const posts = getPostsByThreadId(threadId);
+        // Pagination
+        const page = Number(url.searchParams.get('page')) || 1;
+        const postsPerPage = 10;
+        const totalPosts = getTotalPostsInThread(threadId);
+        const totalPages = Math.ceil(totalPosts / postsPerPage);
+        const offset = (page - 1) * postsPerPage;
+        
+        const posts = getPostsByThreadId(threadId, postsPerPage, offset);
         
         return { 
             thread,
-            posts
+            posts,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalPosts,
+                postsPerPage
+            }
         };
     } catch (err) {
         console.error('Error loading thread:', err);
         throw error(500, 'Failed to load thread');
+    }
+};
+
+export const actions = {
+    reply: async ({ request, params, locals}) => {
+        const formData = await request.formData();
+        const content = String(formData.get('content') || '').trim();
+        const threadId = Number(params.id);
+        const user = locals.user;
+
+        if (!user) {
+            throw error(401, 'You must be logged in to reply');
+        }
+
+        // Check if thread exists and is not locked
+        const thread = getThreadById(threadId);
+        if (!thread) {
+            throw error(404, 'Thread not found');
+        }
+
+        if (thread.is_locked) {
+            return { success: false, error: 'This thread is locked and no longer accepting replies' };
+        }
+
+        if (!content) {
+            return { success: false, error: 'Content cannot be empty' };
+        }
+
+        try {
+            createPost({
+                thread_id: threadId,
+                author_id: user.id,
+                content
+            });
+
+            return { success: true };
+        } catch (err) {
+            console.error('Error creating post:', err);
+            return { success: false, error: 'Failed to create post' };
+        }
+
+
     }
 };

@@ -262,15 +262,33 @@ export function getTotalPostCount(): number {
     return row.count;
 }
 
-export function getPostsByThreadId(threadId: number): (DbPost & { author_username: string })[] {
-    const posts = db.prepare(`
-        SELECT posts.*, users.username as author_username
+export function getPostsByThreadId(threadId: number, limit?: number, offset?: number): (DbPost & { author_username: string; author_profile_image: string | null })[] {
+    let query = `
+        SELECT posts.*, users.username as author_username, users.profile_image as author_profile_image
         FROM posts
         LEFT JOIN users ON posts.author_id = users.id
         WHERE posts.thread_id = ? AND posts.is_deleted = 0
         ORDER BY posts.created_at ASC
-    `).all(threadId) as (DbPost & { author_username: string })[];
+    `;
+    
+    if (limit !== undefined) {
+        query += ` LIMIT ${limit}`;
+        if (offset !== undefined) {
+            query += ` OFFSET ${offset}`;
+        }
+    }
+    
+    const posts = db.prepare(query).all(threadId) as (DbPost & { author_username: string; author_profile_image: string | null })[];
     return posts;
+}
+
+export function getTotalPostsInThread(threadId: number): number {
+    const row = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM posts 
+        WHERE thread_id = ? AND is_deleted = 0
+    `).get(threadId) as { count: number };
+    return row.count;
 }
 
 export function getThreadById(threadId: number): (DbThread & { author_username: string; category_name: string; category_slug: string }) | null {
@@ -282,6 +300,65 @@ export function getThreadById(threadId: number): (DbThread & { author_username: 
         WHERE threads.id = ? AND threads.is_deleted = 0
     `).get(threadId) as (DbThread & { author_username: string; category_name: string; category_slug: string }) | undefined;
     return thread || null;
+}
+
+export function createThread(threadData: {
+    categoryId: string;
+    title: string;
+    authorId: string;
+    isSticky: boolean;
+    isLocked: boolean;
+    initialContent: string;
+}): DbThread {
+    const stmt = db.prepare(`
+        INSERT INTO threads (category_id, title, author_id, is_sticky, is_locked, is_deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+    
+    const result = stmt.run(
+        threadData.categoryId,
+        threadData.title,
+        threadData.authorId,
+        threadData.isSticky ? 1 : 0,
+        threadData.isLocked ? 1 : 0
+    );
+    
+    const threadId = result.lastInsertRowid as number;
+    
+    // Create the initial post
+    createPost({
+        thread_id: threadId,
+        author_id: threadData.authorId,
+        content: threadData.initialContent
+    });
+    
+    // Return the created thread
+    const thread = db.prepare(`
+        SELECT * FROM threads WHERE id = ?
+    `).get(threadId) as DbThread;
+    
+    return thread;
+}
+
+export function createPost(postData: { thread_id: number; author_id: string; content: string }): DbPost {
+    const stmt = db.prepare(`
+        INSERT INTO posts (thread_id, author_id, content, created_at, updated_at, is_deleted)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
+    `);
+    
+    const result = stmt.run(postData.thread_id, postData.author_id, postData.content);
+    
+    // Update thread's updated_at timestamp
+    db.prepare(`
+        UPDATE threads 
+        SET updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+    `).run(postData.thread_id);
+    
+    // Return the created post
+    return db.prepare(`
+        SELECT * FROM posts WHERE id = ?
+    `).get(result.lastInsertRowid) as DbPost;
 }
 
 // Initialize seed data on first run

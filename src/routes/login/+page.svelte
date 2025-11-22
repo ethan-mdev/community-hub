@@ -52,14 +52,16 @@
 
             <!-- Form Content -->
             <div class="p-6">
-                <ErrorMessage error={form?.error} />
+                {#if form?.error}
+                    <ErrorMessage error={form.error} />
+                {/if}
 
                 <form
                     method="POST"
                     action="?/{isLogin ? 'login' : 'register'}"
                     use:enhance={() => {
                         isLoading = true;
-                        return async ({ update }) => {
+                        return async ({ result, update }) => {
                             isLoading = false;
                             await update();
                         };

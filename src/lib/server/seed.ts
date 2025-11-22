@@ -6,6 +6,7 @@ const db = new Database("forum.db");
 export function seedDatabase() {
     // Check if categories already exist before seeding
     const existingCategories = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
+    const existingPosts = db.prepare('SELECT COUNT(*) as count FROM posts').get() as { count: number };
 
     if (existingCategories.count === 0) {
         console.log('Seeding categories...');
@@ -68,7 +69,7 @@ export function seedDatabase() {
                 description: "Talk about anything game related.",
                 image: null,
                 slug: "general-discussion",
-                is_locked: 0,
+                is_locked: 1,
                 parent_id: gameDiscussionId
             },
             {
@@ -141,7 +142,7 @@ export function seedDatabase() {
                 title: "Double XP Weekend Coming Soon!",
                 author_id: sampleUserId,
                 is_sticky: 0,
-                is_locked: 0
+                is_locked: 1
             },
             // General discussion
             {
@@ -222,6 +223,170 @@ export function seedDatabase() {
         }
 
         console.log("Seeded sample threads successfully!");
+
+        // Now seed some posts for the threads
+        console.log('Seeding sample posts...');
+
+        // Get some thread IDs to add posts to
+        const threadRows = db.prepare(`SELECT id, title FROM threads ORDER BY id ASC LIMIT 5`).all() as { id: number, title: string }[];
+
+        // Create a few more sample users for variety
+        const users = [
+            { id: randomUUID(), username: 'PlayerOne', email: 'player1@example.com' },
+            { id: randomUUID(), username: 'WizardMage', email: 'wizard@example.com' },
+            { id: randomUUID(), username: 'SwordMaster', email: 'sword@example.com' },
+            { id: randomUUID(), username: 'NewbieGamer', email: 'newbie@example.com' }
+        ];
+
+        for (const user of users) {
+            db.prepare(`
+                INSERT INTO users (id, email, username, password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            `).run(user.id, user.email, user.username, 'dummy_hash', new Date().toISOString());
+        }
+
+        // Sample posts for different threads
+        const posts = [
+            // Posts for first thread (Winter Festival Event)
+            {
+                thread_id: threadRows[0]?.id,
+                author_id: sampleUserId,
+                content: `🎄 Get ready for the most magical event of the year! 
+
+The Winter Festival brings:
+• Double XP for all activities
+• Exclusive winter cosmetics
+• Special holiday quests
+• Limited-time mounts
+
+Event runs from December 15th through December 31st. Don't miss out!`
+            },
+            {
+                thread_id: threadRows[0]?.id,
+                author_id: users[0].id,
+                content: `This sounds amazing! I've been saving up for months to participate in a big event like this. 
+
+Quick question - will the winter cosmetics be tradeable after the event ends?`
+            },
+            {
+                thread_id: threadRows[0]?.id,
+                author_id: users[1].id,
+                content: `@PlayerOne - Based on previous events, the cosmetics are usually bind-on-pickup, so you won't be able to trade them. But they're definitely worth collecting!
+
+Can't wait to see what the new mounts look like 🐎❄️`
+            },
+
+            // Posts for second thread (Double XP Weekend)
+            {
+                thread_id: threadRows[1]?.id,
+                author_id: sampleUserId,
+                content: `Mark your calendars everyone! This weekend (Saturday & Sunday) we're running a double XP event.
+
+Perfect time to:
+- Level up those alts
+- Grind out some achievements 
+- Try new content you've been putting off
+
+The boost applies to ALL XP sources - quests, dungeons, PvP, crafting, everything!`
+            },
+            {
+                thread_id: threadRows[1]?.id,
+                author_id: users[2].id,
+                content: `Finally! I've been stuck at level 47 for weeks. Time to push to 50 💪
+
+Anyone want to group up for some dungeon runs? I'm a tank so we should get quick queues.`
+            },
+
+            // Posts for third thread (Favorite class)
+            {
+                thread_id: threadRows[2]?.id,
+                author_id: users[0].id,
+                content: `I'm a Mage main and absolutely love it! The spell combinations are so satisfying.
+
+My favorite combo is Frost Bolt → Ice Shard → Blizzard for AOE clearing. What about you all?`
+            },
+            {
+                thread_id: threadRows[2]?.id,
+                author_id: users[2].id,
+                content: `Warrior all the way! There's nothing quite like charging into battle with a massive two-handed sword.
+
+Sure, we don't have fancy spells, but when you land a perfect critical hit... *chef's kiss* 👨‍🍳💋`
+            },
+            {
+                thread_id: threadRows[2]?.id,
+                author_id: users[1].id,
+                content: `I used to be a pure DPS player (Rogue), but recently switched to Paladin for the versatility. 
+
+Being able to heal, tank, OR DPS depending on what the group needs is amazing. Plus the holy magic effects look incredible!`
+            },
+            {
+                thread_id: threadRows[2]?.id,
+                author_id: users[3].id,
+                content: `@WizardMage Paladin was actually my first choice when I started! But I found the rotation a bit complex for a beginner.
+
+Currently playing Hunter - the pet system is so cool and it's pretty forgiving for new players like me.`
+            },
+
+            // Posts for fourth thread (New player tips)
+            {
+                thread_id: threadRows[3]?.id,
+                author_id: users[3].id,
+                content: `Hey everyone! Just started playing yesterday and I'm completely overwhelmed 😅
+
+There are so many systems, menus, and options. Any advice for a complete noob? I picked a Ranger if that matters.`
+            },
+            {
+                thread_id: threadRows[3]?.id,
+                author_id: sampleUserId,
+                content: `Welcome to the game! 🎮
+
+Here are my top tips for new players:
+
+1. **Take your time** - Don't rush to endgame, enjoy the journey
+2. **Join a newbie-friendly guild** - The community here is great
+3. **Focus on your main quest line** - It teaches you the basics
+4. **Don't worry about optimal builds** - Have fun experimenting
+5. **Ask questions!** - We're all here to help
+
+Ranger is a great choice for beginners. Good damage and pretty survivable!`
+            },
+            {
+                thread_id: threadRows[3]?.id,
+                author_id: users[0].id,
+                content: `@NewbieGamer One thing I wish I knew when starting: don't sell everything to vendors!
+
+Check the auction house first - some "junk" items are worth way more than vendor price. Especially crafting materials and rare components.`
+            },
+
+            // Posts for fifth thread (Latest patch thoughts)
+            {
+                thread_id: threadRows[4]?.id,
+                author_id: users[1].id,
+                content: `What does everyone think about the combat changes in patch 2.4.1?
+
+The spell casting speed buffs are nice, but I'm not sure about the mana cost increases. Feels like we're going OOM much faster now.`
+            },
+            {
+                thread_id: threadRows[4]?.id,
+                author_id: users[2].id,
+                content: `As a melee player, I LOVE the new dodge mechanics! Finally feels like agility actually matters.
+
+The weapon rebalancing is interesting too - seems like they're trying to make more weapon types viable in endgame.`
+            }
+        ];
+
+        const insertPost = db.prepare(`
+            INSERT INTO posts (thread_id, author_id, content, created_at, updated_at, is_deleted)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
+        `);
+
+        for (const post of posts) {
+            if (post.thread_id) {
+                insertPost.run(post.thread_id, post.author_id, post.content);
+            }
+        }
+
+        console.log("Seeded sample posts successfully!");
 
     } else {
         console.log(`Categories already exist (${existingCategories.count} found), skipping seed.`);

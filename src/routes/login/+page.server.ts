@@ -59,12 +59,19 @@ export const actions: Actions = {
 
         try {
             await registerUser(event, email, username, password);
-            throw redirect(303, '/');
         } catch (error) {
-            if (error instanceof Error && error.message.includes('duplicate')) {
-                return fail(400, { error: 'Email or username already exists', email, username });
+            if (error instanceof Error) {
+                if (error.message.includes('Email already exists')) {
+                    return fail(400, { error: 'Email already exists', email, username });
+                }
+                if (error.message.includes('Username already exists')) {
+                    return fail(400, { error: 'Username already exists', email, username });
+                }
             }
             return fail(500, { error: 'Registration failed. Please try again.', email, username });
         }
+
+        // If we get here, registration was successful
+        throw redirect(303, '/');
     }
 };

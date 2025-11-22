@@ -1,7 +1,15 @@
 <script lang="ts">
     import type { DbCategory } from '$lib/server/db';
     import type { AuthenticatedUser } from "$lib/server/auth";
-    let { category, user }: { category: DbCategory & { threads: any[] }, user: AuthenticatedUser | null } = $props();
+    import NewThreadModal from './NewThreadModal.svelte';
+    
+    let { category, user, form }: { 
+        category: DbCategory & { threads: any[] }, 
+        user: AuthenticatedUser | null,
+        form?: any 
+    } = $props();
+    
+    let showNewThreadModal = $state(false);
 </script>
 
 <!-- Category header card -->
@@ -18,20 +26,32 @@
             </div>
 
             <!-- New thread button -->
-            {#if user && category.is_locked !== true}
-            <button
-                class="flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-3 font-semibold text-neutral-900 transition hover:bg-amber-600"
-                type="button"
-            >
-                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                        fill-rule="evenodd"
-                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                        clip-rule="evenodd"
-                    />
-                </svg>
-                New Thread
-            </button>
+            {#if user}
+                <button
+                    onclick={() => category.is_locked ? null : showNewThreadModal = true}
+                    disabled={category.is_locked}
+                    class="flex items-center gap-2 rounded-lg px-6 py-3 font-semibold transition {category.is_locked 
+                        ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' 
+                        : 'bg-amber-500 text-neutral-900 hover:bg-amber-600'}"
+                    type="button"
+                    title={category.is_locked ? 'This category is locked' : 'Create a new thread'}
+                >
+                    {#if category.is_locked}
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                        Category Locked
+                    {:else}
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                fill-rule="evenodd"
+                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                        New Thread
+                    {/if}
+                </button>
             {/if}
         </div>
     </div>
@@ -53,3 +73,14 @@
         </div>
     </div>
 </section>
+
+<!-- New Thread Modal -->
+{#if user}
+    <NewThreadModal
+        bind:isOpen={showNewThreadModal}
+        categorySlug={category.slug}
+        categoryName={category.name}
+        {user}
+        {form}
+    />
+{/if}
