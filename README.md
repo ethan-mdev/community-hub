@@ -27,19 +27,15 @@ Even though the original concept came from a private-server project, this repo i
 
 ### Forum Homepage
 ![Forum Categories](screenshots/forum-homepage.png)
-*Category listing with clean dark theme design*
 
 ### Thread View
 ![Thread Discussion](screenshots/thread-view.png)
-*Thread with posts, avatars, and reply functionality*
 
 ### New Thread Modal
 ![Create Thread](screenshots/new-thread-modal.png)
-*Modal interface for creating new discussion threads*
 
 ### Profile Image Modal
 ![Profile Images](screenshots/profile-image-modal.png)
-*Modal interface for choosing a profile image*
 
 ---
 
