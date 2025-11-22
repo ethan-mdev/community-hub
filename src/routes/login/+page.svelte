@@ -1,5 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
+    import FormField from '$lib/components/FormField.svelte';
+    import ErrorMessage from '$lib/components/ErrorMessage.svelte';
     import type { ActionData } from './$types';
     
     let { form }: { form: ActionData } = $props();
@@ -32,7 +34,7 @@
                     type="button"
                     onclick={toggleMode}
                     class="flex-1 px-6 py-4 text-sm font-semibold transition {isLogin 
-                        ? 'bg-gradient-to-r from-amber-500/10 to-transparent text-amber-400 border-b-2 border-amber-500' 
+                        ? 'bg-linear-to-r from-amber-500/10 to-transparent text-amber-400 border-b-2 border-amber-500' 
                         : 'text-gray-400 hover:text-gray-300'}"
                 >
                     Sign In
@@ -41,7 +43,7 @@
                     type="button"
                     onclick={toggleMode}
                     class="flex-1 px-6 py-4 text-sm font-semibold transition {!isLogin 
-                        ? 'bg-gradient-to-r from-amber-500/10 to-transparent text-amber-400 border-b-2 border-amber-500' 
+                        ? 'bg-linear-to-r from-amber-500/10 to-transparent text-amber-400 border-b-2 border-amber-500' 
                         : 'text-gray-400 hover:text-gray-300'}"
                 >
                     Register
@@ -50,11 +52,7 @@
 
             <!-- Form Content -->
             <div class="p-6">
-                {#if form?.error}
-                    <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <p class="text-red-400 text-sm">{form.error}</p>
-                    </div>
-                {/if}
+                <ErrorMessage error={form?.error} />
 
                 <form
                     method="POST"
@@ -68,54 +66,36 @@
                     }}
                     class="space-y-4"
                 >
-                    <!-- Login: Username, Register: Email -->
-                    <div>
-                        <label for={isLogin ? "username" : "email"} class="block text-sm font-medium text-gray-300 mb-2">
-                            {isLogin ? "Username" : "Email Address"}
-                        </label>
-                        <input
-                            id={isLogin ? "username" : "email"}
-                            name={isLogin ? "username" : "email"}
-                            type={isLogin ? "text" : "email"}
-                            required
-                            value={form?.[isLogin ? "username" : "email"] ?? ''}
-                            class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                            placeholder={isLogin ? "Enter your username" : "Enter your email"}
-                        />
-                    </div>
+                    <FormField
+                        id={isLogin ? "username" : "email"}
+                        name={isLogin ? "username" : "email"}
+                        type={isLogin ? "text" : "email"}
+                        label={isLogin ? "Username" : "Email Address"}
+                        placeholder={isLogin ? "Enter your username" : "Enter your email"}
+                        required={true}
+                        value={form?.[isLogin ? "username" : "email"] ?? ''}
+                    />
 
-                    <!-- Username Field (Register only) -->
                     {#if !isLogin}
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-gray-300 mb-2">
-                                Username
-                            </label>
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                required
-                                value={form?.username ?? ''}
-                                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                                placeholder="Choose a username"
-                            />
-                        </div>
+                        <FormField
+                            id="username"
+                            name="username"
+                            type="text"
+                            label="Username"
+                            placeholder="Choose a username"
+                            required={true}
+                            value={form?.username ?? ''}
+                        />
                     {/if}
 
-                    <!-- Password Field -->
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-300 mb-2">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                            placeholder="Enter your password"
-                        />
-                    </div>
+                    <FormField
+                        id="password"
+                        name="password"
+                        type="password"
+                        label="Password"
+                        placeholder="Enter your password"
+                        required={true}
+                    />
 
                     <!-- Submit Button -->
                     <button

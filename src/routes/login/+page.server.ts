@@ -37,7 +37,34 @@ export const actions: Actions = {
             return fail(400, { error: 'All fields required', email, username });
         }
 
-        await registerUser(event, email, username, password);
-        throw redirect(303, '/');
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return fail(400, { error: 'Please enter a valid email address', email, username });
+        }
+
+        // Username validation
+        if (username.length < 4 || username.length > 20) {
+            return fail(400, { error: 'Username must be between 4-20 characters', email, username });
+        }
+
+        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            return fail(400, { error: 'Username can only contain letters, numbers, underscores, and hyphens', email, username });
+        }
+
+        // Password validation
+        if (password.length < 6) {
+            return fail(400, { error: 'Password must be at least 6 characters long', email, username });
+        }
+
+        try {
+            await registerUser(event, email, username, password);
+            throw redirect(303, '/');
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('duplicate')) {
+                return fail(400, { error: 'Email or username already exists', email, username });
+            }
+            return fail(500, { error: 'Registration failed. Please try again.', email, username });
+        }
     }
 };

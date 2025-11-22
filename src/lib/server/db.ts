@@ -134,6 +134,11 @@ export function getUserByUsername(username: string): DbUser | undefined {
     return row || undefined;
 }
 
+export function getUserByEmail(email: string): DbUser | undefined {
+    const row = db.prepare(`SELECT * FROM users WHERE email = ?`).get(email) as DbUser | undefined;
+    return row || undefined;
+}
+
 export function updateUserProfileImage(userId: string, profileImage: string): void {
     db.prepare(`
         UPDATE users 
@@ -266,6 +271,17 @@ export function getPostsByThreadId(threadId: number): (DbPost & { author_usernam
         ORDER BY posts.created_at ASC
     `).all(threadId) as (DbPost & { author_username: string })[];
     return posts;
+}
+
+export function getThreadById(threadId: number): (DbThread & { author_username: string; category_name: string; category_slug: string }) | null {
+    const thread = db.prepare(`
+        SELECT threads.*, users.username as author_username, categories.name as category_name, categories.slug as category_slug
+        FROM threads
+        LEFT JOIN users ON threads.author_id = users.id
+        LEFT JOIN categories ON threads.category_id = categories.id
+        WHERE threads.id = ? AND threads.is_deleted = 0
+    `).get(threadId) as (DbThread & { author_username: string; category_name: string; category_slug: string }) | undefined;
+    return thread || null;
 }
 
 // Initialize seed data on first run

@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { createSession, createUser, deleteSession, getUserWithSession, getUserById, type DbUser, getUserByUsername } from '$lib/server/db';
+import { createSession, createUser, deleteSession, getUserWithSession, getUserById, type DbUser, getUserByUsername, getUserByEmail } from '$lib/server/db';
 import type { RequestEvent } from '@sveltejs/kit';
 
 const SESSION_COOKIE = 'forum_session';
@@ -27,6 +27,18 @@ export function getAuthenticatedUser(event: RequestEvent): AuthenticatedUser | n
 }
 
 export async function registerUser(event: RequestEvent, email: string, username: string, password: string): Promise<AuthenticatedUser> {
+    // Check for existing email
+    const existingEmail = getUserByEmail(email);
+    if (existingEmail) {
+        throw new Error('Email already exists');
+    }
+
+    // Check for existing username
+    const existingUsername = getUserByUsername(username);
+    if (existingUsername) {
+        throw new Error('Username already exists');
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const user = createUser(email, username, passwordHash);
     const session = createSession(user.id);

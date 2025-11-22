@@ -9,7 +9,10 @@
 </script>
 
 <main class="container mx-auto max-w-6xl px-4 py-8">
-    <Breadcrumb categoryName={data.category.name} />
+    <Breadcrumb items={[
+        { label: 'Forums', href: '/' },
+        { label: data.category.name }
+    ]} />
     <CategoryHeader category={data.category } user={data.user} />
     <ThreadList threads={data.category.threads} categorySlug={data.category.slug} />
 </main>
