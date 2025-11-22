@@ -23,6 +23,26 @@ Even though the original concept came from a private-server project, this repo i
 
 ---
 
+## Screenshots
+
+### Forum Homepage
+![Forum Categories](screenshots/forum-homepage.png)
+*Category listing with clean dark theme design*
+
+### Thread View
+![Thread Discussion](screenshots/thread-view.png)
+*Thread with posts, avatars, and reply functionality*
+
+### New Thread Modal
+![Create Thread](screenshots/new-thread-modal.png)
+*Modal interface for creating new discussion threads*
+
+### Profile Image Modal
+![Profile Images](screenshots/profile-image-modal.png)
+*Modal interface for choosing a profile image*
+
+---
+
 ## Current Features
 
 ### ✔ Authentication
@@ -66,9 +86,7 @@ They are included purely for demonstration purposes inside this development proj
 Planned enhancements for future iterations of this project:
 
 ### 🔧 Authentication / Users
-- Centralized auth service integration  
-- User profile pages (recent posts, join date, avatar updates)  
-- Email verification (optional)  
+- Centralized auth service integration
 
 ### 🎭 Roles & Permissions
 - Role system (Admin, Moderator, GM, Member, etc.)  
@@ -93,10 +111,8 @@ Planned enhancements for future iterations of this project:
 - Silent edits + edit history  
 
 ### 📄 Thread Features
-- Pagination for long threads  
-- OP highlighting  
-- Post anchors (`#post-123`)  
-- Thread tags  
+- Thread tags
+- Search functionality
 
 ---
 

@@ -232,17 +232,17 @@ export function seedDatabase() {
 
         // Create a few more sample users for variety
         const users = [
-            { id: randomUUID(), username: 'PlayerOne', email: 'player1@example.com' },
-            { id: randomUUID(), username: 'WizardMage', email: 'wizard@example.com' },
-            { id: randomUUID(), username: 'SwordMaster', email: 'sword@example.com' },
-            { id: randomUUID(), username: 'NewbieGamer', email: 'newbie@example.com' }
+            { id: randomUUID(), username: 'PlayerOne', email: 'player1@example.com', profile_image: 'avatar-3.png' },
+            { id: randomUUID(), username: 'WizardMage', email: 'wizard@example.com', profile_image: 'avatar-4.png' },
+            { id: randomUUID(), username: 'SwordMaster', email: 'sword@example.com', profile_image: 'avatar-5.png' },
+            { id: randomUUID(), username: 'NewbieGamer', email: 'newbie@example.com', profile_image: 'avatar-6.png' }
         ];
 
         for (const user of users) {
             db.prepare(`
-                INSERT INTO users (id, email, username, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            `).run(user.id, user.email, user.username, 'dummy_hash', new Date().toISOString());
+                INSERT INTO users (id, email, username, password_hash, profile_image, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(user.id, user.email, user.username, 'dummy_hash', user.profile_image, new Date().toISOString());
         }
 
         // Sample posts for different threads
