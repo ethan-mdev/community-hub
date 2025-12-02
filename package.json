@@ -39,6 +39,7 @@
 	},
 	"dependencies": {
 		"bcrypt": "^6.0.0",
-		"better-sqlite3": "^12.4.1"
+		"better-sqlite3": "^12.4.1",
+		"jose": "^6.1.2"
 	}
 }

@@ -1,86 +1,92 @@
-import bcrypt from 'bcrypt';
-import { createSession, createUser, deleteSession, getUserWithSession, getUserById, type DbUser, getUserByUsername, getUserByEmail } from '$lib/server/db';
-import type { RequestEvent } from '@sveltejs/kit';
+import * as jose from 'jose';
+import { error } from '@sveltejs/kit';
 
-const SESSION_COOKIE = 'forum_session';
+const AUTH_SERVER = process.env.AUTH_SERVER_URL || 'http://localhost:8080';
 
-export type AuthenticatedUser = Omit<DbUser, 'password_hash'>;
+// Cache JWKS for performance
+let jwks: jose.JWTVerifyGetKey | null = null;
 
-function sanitizeUser(user: DbUser): AuthenticatedUser {
-    const { password_hash, ...sanitized } = user;
-    return sanitized;
+function getJWKS() {
+    if (!jwks) {
+        jwks = jose.createRemoteJWKSet(new URL(`${AUTH_SERVER}/.well-known/jwks.json`));
+    }
+    return jwks;
 }
 
-export function getAuthenticatedUser(event: RequestEvent): AuthenticatedUser | null {
-    const sessionId = event.cookies.get(SESSION_COOKIE);
+export type AuthUser = {
+    id: string;
+    username: string;
+    role: string;
+};
 
-    if (!sessionId) return null;
+export type TokenPair = {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+};
 
-    const sessionWithUser = getUserWithSession(sessionId);
-
-    if (!sessionWithUser) {
-        event.cookies.delete(SESSION_COOKIE, { path: '/' });
+// Validate JWT and return user info
+export async function validateToken(token: string): Promise<AuthUser | null> {
+    try {
+        const { payload } = await jose.jwtVerify(token, getJWKS());
+        return {
+            id: payload.user_id as string,
+            username: payload.username as string,
+            role: payload.role as string,
+        };
+    } catch {
         return null;
     }
-
-    return sanitizeUser(sessionWithUser.user);
 }
 
-export async function registerUser(event: RequestEvent, email: string, username: string, password: string): Promise<AuthenticatedUser> {
-    // Check for existing email
-    const existingEmail = getUserByEmail(email);
-    if (existingEmail) {
-        throw new Error('Email already exists');
-    }
-
-    // Check for existing username
-    const existingUsername = getUserByUsername(username);
-    if (existingUsername) {
-        throw new Error('Username already exists');
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const user = createUser(email, username, passwordHash);
-    const session = createSession(user.id);
-
-    event.cookies.set(SESSION_COOKIE, session.id, {
-        path: '/', httpOnly: true, sameSite: 'lax', secure: false // set to true in production
+// Call auth server to login
+export async function login(username: string, password: string): Promise<TokenPair | null> {
+    const res = await fetch(`${AUTH_SERVER}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
     });
-
-    return sanitizeUser(user);
+    
+    if (!res.ok) return null;
+    return res.json();
 }
 
-export async function loginUser(event: RequestEvent, username: string, password: string): Promise<AuthenticatedUser | null> {
-    const user = getUserByUsername(username);
-
-    if (!user) return null;
-
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (!passwordMatch) return null;
-
-    const session = createSession(user.id);
-    event.cookies.set(SESSION_COOKIE, session.id, {
-        path: '/', httpOnly: true, sameSite: 'lax', secure: false // set to true in production
+// Call auth server to register
+export async function register(username: string, email: string, password: string): Promise<TokenPair | null> {
+    const res = await fetch(`${AUTH_SERVER}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
     });
-
-    return sanitizeUser(user);
+    
+    if (!res.ok) return null;
+    return res.json();
 }
 
-export async function logoutUser(event: RequestEvent): Promise<void> {
-    const sessionId = event.cookies.get(SESSION_COOKIE);
-
-    if (sessionId) {
-        deleteSession(sessionId);
-        event.cookies.delete(SESSION_COOKIE, { path: '/' });
-    }
+// Call auth server to refresh tokens
+export async function refreshTokens(refreshToken: string): Promise<TokenPair | null> {
+    const res = await fetch(`${AUTH_SERVER}/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    
+    if (!res.ok) return null;
+    return res.json();
 }
 
-export function requireUser(event: RequestEvent): AuthenticatedUser {
-    const user = event.locals.user;
+// Call auth server to logout
+export async function logout(refreshToken: string): Promise<void> {
+    await fetch(`${AUTH_SERVER}/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+}
 
-    if (!user) {
-        throw new Error('User not authenticated');
+export function requireUser(event: { locals: App.Locals }) {
+    if (!event.locals.user) {
+        throw error(401, 'Must be logged in');
     }
-    return user;
+    return event.locals.user;
 }

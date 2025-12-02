@@ -1,6 +1,6 @@
 import type { Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import { updateUserProfileImage } from '$lib/server/db';
+import { updateProfileImage } from '$lib/server/db';
 import { requireUser } from '$lib/server/auth';
 
 export const actions: Actions = {
@@ -14,7 +14,7 @@ export const actions: Actions = {
         }
 
         try {
-            updateUserProfileImage(user.id, avatar);
+            updateProfileImage(user.id, avatar);
             return { success: true };
         } catch (error) {
             console.error('Error updating profile image:', error);

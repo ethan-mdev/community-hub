@@ -5,21 +5,11 @@ const db = new Database("forum.db");
 
 // --- Initialize database schema ---
 db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        profile_image TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        expires_at DATETIME NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CREATE TABLE IF NOT EXISTS profiles (
+        user_id TEXT PRIMARY KEY,
+        username TEXT NOT NULL,
+        profile_image TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS categories (
@@ -44,7 +34,7 @@ db.exec(`
         is_sticky BOOLEAN DEFAULT 0,
         is_deleted BOOLEAN DEFAULT 0,
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-        FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (author_id) REFERENCES profiles(user_id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS posts (
@@ -56,25 +46,16 @@ db.exec(`
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_deleted BOOLEAN DEFAULT 0,
         FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
-        FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (author_id) REFERENCES profiles(user_id) ON DELETE CASCADE
     );
 `);
 
 // --- Types ---
-export type DbUser = {
-    id: string;
-    email: string;
-    username: string;
-    password_hash: string;
-    created_at: string;
-    profile_image: string | null;
-};
-
-export type DbSession = {
-    id: string;
+export type DbProfile = {
     user_id: string;
+    username: string;
+    profile_image: string | null;
     created_at: string;
-    expires_at: string;
 };
 
 export type DbCategory = {
@@ -112,90 +93,28 @@ export type DbPost = {
     author_username?: string;
 };
 
-// --- User-related functions ---
-export function createUser(email: string, username: string, password_hash: string): DbUser {
-    const id = randomUUID();
-    const now = new Date().toISOString();
-    const stmt = db.prepare(`
-        INSERT INTO users (id, email, username, password_hash, created_at)
-        VALUES (?, ?, ?, ?, ?)
-    `).run(id, email, username, password_hash, now);
-
-    return getUserById(id)!;
-};
-
-export function getUserById(id: string): DbUser | undefined {
-    const row = db.prepare(`SELECT * FROM users WHERE id = ?`).get(id) as DbUser | undefined;
-    return row || undefined;
-};
-
-export function getUserByUsername(username: string): DbUser | undefined {
-    const row = db.prepare(`SELECT * FROM users WHERE username = ?`).get(username) as DbUser | undefined;
-    return row || undefined;
+// --- Profile functions ---
+export function getOrCreateProfile(userId: string, username: string): DbProfile {
+    const existing = db.prepare(`SELECT * FROM profiles WHERE user_id = ?`).get(userId) as DbProfile | undefined;
+    
+    if (existing) {
+        // Update username if changed
+        if (existing.username !== username) {
+            db.prepare(`UPDATE profiles SET username = ? WHERE user_id = ?`).run(username, userId);
+        }
+        return { ...existing, username };
+    }
+    
+    db.prepare(`INSERT INTO profiles (user_id, username) VALUES (?, ?)`).run(userId, username);
+    return { user_id: userId, username, profile_image: null, created_at: new Date().toISOString() };
 }
 
-export function getUserByEmail(email: string): DbUser | undefined {
-    const row = db.prepare(`SELECT * FROM users WHERE email = ?`).get(email) as DbUser | undefined;
-    return row || undefined;
+export function getProfileById(userId: string): DbProfile | undefined {
+    return db.prepare(`SELECT * FROM profiles WHERE user_id = ?`).get(userId) as DbProfile | undefined;
 }
 
-export function updateUserProfileImage(userId: string, profileImage: string): void {
-    db.prepare(`
-        UPDATE users 
-        SET profile_image = ? 
-        WHERE id = ?
-    `).run(profileImage, userId);
-}
-
-// --- Session-related functions ---
-export function createSession(userId: string): DbSession {
-    const id = randomUUID();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-    db.prepare(`
-        INSERT INTO sessions (id, user_id, created_at, expires_at)
-        VALUES (?, ?, ?, ?)
-    `).run(id, userId, now.toISOString(), expiresAt.toISOString());
-
-    return {
-        id,
-        user_id: userId,
-        created_at: now.toISOString(),
-        expires_at: expiresAt.toISOString(),
-    };
-}
-
-export function getUserWithSession(sessionId: string): { session: DbSession; user: DbUser } | undefined {
-    const row = db.prepare(`
-        SELECT s.*, u.*
-        FROM sessions s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.id = ? AND s.expires_at > CURRENT_TIMESTAMP
-    `).get(sessionId) as (DbSession & DbUser) | undefined;
-
-    if (!row) return undefined;
-
-    const session: DbSession = {
-        id: row.id,
-        user_id: row.user_id,
-        created_at: row.created_at,
-        expires_at: row.expires_at
-    };
-
-    const user: DbUser = {
-        id: row.id,
-        email: row.email,
-        username: row.username,
-        password_hash: row.password_hash,
-        created_at: row.created_at,
-        profile_image: row.profile_image
-    };
-
-    return { session, user };
-}
-
-export function deleteSession(sessionId: string): void {
-    db.prepare(`DELETE FROM sessions WHERE id = ?`).run(sessionId);
+export function updateProfileImage(userId: string, profileImage: string): void {
+    db.prepare(`UPDATE profiles SET profile_image = ? WHERE user_id = ?`).run(profileImage, userId);
 }
 
 // --- Category-related functions ---
@@ -215,16 +134,14 @@ export function getCategoriesWithChildren(): (DbCategory & { children: (DbCatego
 }
 
 export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThread & { author_username: string })[] }) | null {
-    // Get the category
     const category = db.prepare(`SELECT * FROM categories WHERE slug = ?`).get(slug) as DbCategory | undefined;
     
     if (!category) return null;
     
-    // Get threads for this category with author username
     const threads = db.prepare(`
-        SELECT t.*, u.username as author_username
+        SELECT t.*, p.username as author_username
         FROM threads t
-        LEFT JOIN users u ON t.author_id = u.id
+        LEFT JOIN profiles p ON t.author_id = p.user_id
         WHERE t.category_id = ? AND t.is_deleted = 0
         ORDER BY t.is_sticky DESC, t.updated_at DESC
     `).all(category.id) as (DbThread & { author_username: string })[];
@@ -264,9 +181,9 @@ export function getTotalPostCount(): number {
 
 export function getPostsByThreadId(threadId: number, limit?: number, offset?: number): (DbPost & { author_username: string; author_profile_image: string | null })[] {
     let query = `
-        SELECT posts.*, users.username as author_username, users.profile_image as author_profile_image
+        SELECT posts.*, profiles.username as author_username, profiles.profile_image as author_profile_image
         FROM posts
-        LEFT JOIN users ON posts.author_id = users.id
+        LEFT JOIN profiles ON posts.author_id = profiles.user_id
         WHERE posts.thread_id = ? AND posts.is_deleted = 0
         ORDER BY posts.created_at ASC
     `;
@@ -293,9 +210,9 @@ export function getTotalPostsInThread(threadId: number): number {
 
 export function getThreadById(threadId: number): (DbThread & { author_username: string; category_name: string; category_slug: string }) | null {
     const thread = db.prepare(`
-        SELECT threads.*, users.username as author_username, categories.name as category_name, categories.slug as category_slug
+        SELECT threads.*, profiles.username as author_username, categories.name as category_name, categories.slug as category_slug
         FROM threads
-        LEFT JOIN users ON threads.author_id = users.id
+        LEFT JOIN profiles ON threads.author_id = profiles.user_id
         LEFT JOIN categories ON threads.category_id = categories.id
         WHERE threads.id = ? AND threads.is_deleted = 0
     `).get(threadId) as (DbThread & { author_username: string; category_name: string; category_slug: string }) | undefined;

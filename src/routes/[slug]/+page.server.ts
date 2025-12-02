@@ -46,18 +46,19 @@ export const actions: Actions = {
             return fail(400, { error: 'Initial post content is required', title, content });
         }
         
+        // Get category to verify it exists
+        const category = getCategoryBySlug(params.slug);
+        if (!category) {
+            throw error(404, 'Category not found');
+        }
+        
+        // Only admins can create sticky/locked threads (remove for now)
+        const finalIsSticky = false;
+        const finalIsLocked = false;
+        
+        let thread;
         try {
-            // Get category to verify it exists
-            const category = getCategoryBySlug(params.slug);
-            if (!category) {
-                throw error(404, 'Category not found');
-            }
-            
-            // Only admins can create sticky/locked threads (remove for now)
-            const finalIsSticky = false; // isSticky;
-            const finalIsLocked = false; // isLocked;
-            
-            const thread = createThread({
+            thread = createThread({
                 categoryId: category.id,
                 title,
                 authorId: user.id,
@@ -65,11 +66,11 @@ export const actions: Actions = {
                 isLocked: finalIsLocked,
                 initialContent: content
             });
-            
-            throw redirect(303, `/${params.slug}/${thread.id}`);
         } catch (err) {
             console.error('Error creating thread:', err);
             return fail(500, { error: 'Failed to create thread', title, content });
         }
+        
+        throw redirect(303, `/${params.slug}/${thread.id}`);
     }
 };
