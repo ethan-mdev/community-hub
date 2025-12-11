@@ -1,8 +1,12 @@
 <script lang="ts">
-	import type { AuthenticatedUser } from "$lib/server/auth";
+	import type { AuthUser } from "$lib/server/auth";
     import ProfileModal from "./ProfileModal.svelte";
 
-    let { totalThreads = 0, totalPosts = 0, user}: { totalThreads: number, totalPosts: number, user: AuthenticatedUser | null } = $props();
+    let { totalThreads = 0, totalPosts = 0, user}: { 
+        totalThreads: number, 
+        totalPosts: number, 
+        user: (AuthUser & { profile_image?: string | null }) | null 
+    } = $props();
     
     let showProfileModal = $state(false);
 

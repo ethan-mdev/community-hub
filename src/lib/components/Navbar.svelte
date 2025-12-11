@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { AuthenticatedUser } from "$lib/server/auth";
-    let { user }: { user: AuthenticatedUser | null } = $props();
+    import type { AuthUser } from "$lib/server/auth";
+    let { user }: { user: (AuthUser & { profile_image?: string | null }) | null } = $props();
 </script>
 
 <nav class="px-6 py-4 flex justify-end">

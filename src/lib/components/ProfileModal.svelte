@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { AuthenticatedUser } from '$lib/server/auth';
+	import type { AuthUser } from '$lib/server/auth';
 
 	let {
 		isOpen = false,
@@ -8,7 +8,7 @@
 		onClose
 	}: {
 		isOpen: boolean;
-		user: AuthenticatedUser;
+		user: AuthUser & { profile_image?: string | null };
 		onClose: () => void;
 	} = $props();
 

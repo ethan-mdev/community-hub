@@ -75,7 +75,7 @@
                         label={isLogin ? "Username" : "Email Address"}
                         placeholder={isLogin ? "Enter your username" : "Enter your email"}
                         required={true}
-                        value={form?.[isLogin ? "username" : "email"] ?? ''}
+                        value={(form as any)?.[isLogin ? "username" : "email"] ?? ''}
                     />
 
                     {#if !isLogin}
@@ -86,7 +86,7 @@
                             label="Username"
                             placeholder="Choose a username"
                             required={true}
-                            value={form?.username ?? ''}
+                            value={(form as any)?.username ?? ''}
                         />
                     {/if}
 

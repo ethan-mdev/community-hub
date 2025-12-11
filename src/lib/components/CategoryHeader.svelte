@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { DbCategory } from '$lib/server/db';
-    import type { AuthenticatedUser } from "$lib/server/auth";
+    import type { AuthUser } from "$lib/server/auth";
     import NewThreadModal from './NewThreadModal.svelte';
     
     let { category, user, form }: { 
         category: DbCategory & { threads: any[] }, 
-        user: AuthenticatedUser | null,
+        user: AuthUser | null,
         form?: any 
     } = $props();
     
