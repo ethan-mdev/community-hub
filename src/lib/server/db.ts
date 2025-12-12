@@ -1,63 +1,16 @@
-import Database from "better-sqlite3";
-import { randomUUID } from "crypto";
+import pg from 'pg';
+const { Pool } = pg;
 
-const db = new Database("forum.db");
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5432/postgres'
+});
 
-// --- Initialize database schema ---
-db.exec(`
-    CREATE TABLE IF NOT EXISTS profiles (
-        user_id TEXT PRIMARY KEY,
-        username TEXT NOT NULL,
-        profile_image TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY,
-        parent_id TEXT,
-        name TEXT NOT NULL,
-        description TEXT,
-        image TEXT,
-        slug TEXT UNIQUE,
-        is_locked BOOLEAN DEFAULT 0,
-        FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS threads (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category_id TEXT NOT NULL,
-        title TEXT NOT NULL,
-        author_id TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_locked BOOLEAN DEFAULT 0,
-        is_sticky BOOLEAN DEFAULT 0,
-        is_deleted BOOLEAN DEFAULT 0,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-        FOREIGN KEY (author_id) REFERENCES profiles(user_id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        thread_id INTEGER NOT NULL,
-        author_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_deleted BOOLEAN DEFAULT 0,
-        FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
-        FOREIGN KEY (author_id) REFERENCES profiles(user_id) ON DELETE CASCADE
-    );
-`);
+// Set search path to forum schema by default
+pool.on('connect', (client) => {
+    client.query('SET search_path TO forum, public');
+});
 
 // --- Types ---
-export type DbProfile = {
-    user_id: string;
-    username: string;
-    profile_image: string | null;
-    created_at: string;
-};
-
 export type DbCategory = {
     id: string;
     parent_id: string | null;
@@ -93,191 +46,159 @@ export type DbPost = {
     author_username?: string;
 };
 
-// --- Profile functions ---
-export function getOrCreateProfile(userId: string, username: string): DbProfile {
-    const existing = db.prepare(`SELECT * FROM profiles WHERE user_id = ?`).get(userId) as DbProfile | undefined;
-    
-    if (existing) {
-        // Update username if changed
-        if (existing.username !== username) {
-            db.prepare(`UPDATE profiles SET username = ? WHERE user_id = ?`).run(username, userId);
-        }
-        return { ...existing, username };
-    }
-    
-    db.prepare(`INSERT INTO profiles (user_id, username) VALUES (?, ?)`).run(userId, username);
-    return { user_id: userId, username, profile_image: null, created_at: new Date().toISOString() };
-}
-
-export function getProfileById(userId: string): DbProfile | undefined {
-    return db.prepare(`SELECT * FROM profiles WHERE user_id = ?`).get(userId) as DbProfile | undefined;
-}
-
-export function updateProfileImage(userId: string, profileImage: string): void {
-    db.prepare(`UPDATE profiles SET profile_image = ? WHERE user_id = ?`).run(profileImage, userId);
-}
-
 // --- Category-related functions ---
-export function getCategoriesWithChildren(): (DbCategory & { children: (DbCategory & { thread_count: number })[] })[] {
-    // Get parent categories (no parent_id)
-    const parents = db.prepare(`SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name`).all() as DbCategory[];
+export async function getCategoriesWithChildren(): Promise<(DbCategory & { children: (DbCategory & { thread_count: number })[] })[]> {
+    const result = await pool.query(`SELECT * FROM forum.categories WHERE parent_id IS NULL ORDER BY name`);
+    const parents = result.rows as DbCategory[];
     
-    return parents.map(parent => ({
-        ...parent,
-        children: (db.prepare(`SELECT * FROM categories WHERE parent_id = ? ORDER BY name`)
-            .all(parent.id) as DbCategory[])
-            .map((child: DbCategory) => ({
-                ...child,
-                thread_count: getNumberOfThreads(child.id)
-            }))
+    const withChildren = await Promise.all(parents.map(async (parent) => {
+        const childrenResult = await pool.query(`SELECT * FROM forum.categories WHERE parent_id = $1 ORDER BY name`, [parent.id]);
+        const children = await Promise.all((childrenResult.rows as DbCategory[]).map(async (child) => ({
+            ...child,
+            thread_count: await getNumberOfThreads(child.id)
+        })));
+        return { ...parent, children };
     }));
+    
+    return withChildren;
 }
 
-export function getCategoryBySlug(slug: string): (DbCategory & { threads: (DbThread & { author_username: string })[] }) | null {
-    const category = db.prepare(`SELECT * FROM categories WHERE slug = ?`).get(slug) as DbCategory | undefined;
+export async function getCategoryBySlug(slug: string): Promise<(DbCategory & { threads: (DbThread & { author_username: string })[] }) | null> {
+    const result = await pool.query(`SELECT * FROM forum.categories WHERE slug = $1`, [slug]);
+    const category = result.rows[0] as DbCategory | undefined;
     
     if (!category) return null;
     
-    const threads = db.prepare(`
-        SELECT t.*, p.username as author_username
-        FROM threads t
-        LEFT JOIN profiles p ON t.author_id = p.user_id
-        WHERE t.category_id = ? AND t.is_deleted = 0
+    const threadsResult = await pool.query(`
+        SELECT t.*, u.username as author_username
+        FROM forum.threads t
+        LEFT JOIN public.users u ON t.author_id = u.id
+        WHERE t.category_id = $1 AND t.is_deleted = false
         ORDER BY t.is_sticky DESC, t.updated_at DESC
-    `).all(category.id) as (DbThread & { author_username: string })[];
+    `, [category.id]);
     
     return {
         ...category,
-        threads
+        threads: threadsResult.rows as (DbThread & { author_username: string })[]
     };
 }
 
 // --- Thread related functions ---
-export function getNumberOfThreads(categoryId: string): number {
-    const row = db.prepare(`
-        SELECT COUNT(*) as count FROM threads WHERE category_id = ?
-    `).get(categoryId) as { count: number };
-    return row.count;
+export async function getNumberOfThreads(categoryId: string): Promise<number> {
+    const result = await pool.query(`
+        SELECT COUNT(*) as count FROM forum.threads WHERE category_id = $1
+    `, [categoryId]);
+    return parseInt(result.rows[0].count);
 }
 
-export function getTotalThreadCount(): number {
-    const row = db.prepare(`
+export async function getTotalThreadCount(): Promise<number> {
+    const result = await pool.query(`
         SELECT COUNT(*) as count 
-        FROM threads 
-        WHERE is_deleted = 0
-    `).get() as { count: number };
-    return row.count;
+        FROM forum.threads 
+        WHERE is_deleted = false
+    `);
+    return parseInt(result.rows[0].count);
 }
 
 // --- Post related functions ---
-export function getTotalPostCount(): number {
-    const row = db.prepare(`
+export async function getTotalPostCount(): Promise<number> {
+    const result = await pool.query(`
         SELECT COUNT(*) as count 
-        FROM posts 
-        WHERE is_deleted = 0
-    `).get() as { count: number };
-    return row.count;
+        FROM forum.posts 
+        WHERE is_deleted = false
+    `);
+    return parseInt(result.rows[0].count);
 }
 
-export function getPostsByThreadId(threadId: number, limit?: number, offset?: number): (DbPost & { author_username: string; author_profile_image: string | null })[] {
+export async function getPostsByThreadId(threadId: number, limit?: number, offset?: number): Promise<(DbPost & { author_username: string; author_profile_image: string | null })[]> {
     let query = `
-        SELECT posts.*, profiles.username as author_username, profiles.profile_image as author_profile_image
-        FROM posts
-        LEFT JOIN profiles ON posts.author_id = profiles.user_id
-        WHERE posts.thread_id = ? AND posts.is_deleted = 0
-        ORDER BY posts.created_at ASC
+        SELECT p.*, u.username as author_username, u.profile_image as author_profile_image
+        FROM forum.posts p
+        LEFT JOIN public.users u ON p.author_id = u.id
+        WHERE p.thread_id = $1 AND p.is_deleted = false
+        ORDER BY p.created_at ASC
     `;
     
+    const params: any[] = [threadId];
+    
     if (limit !== undefined) {
-        query += ` LIMIT ${limit}`;
+        query += ` LIMIT $2`;
+        params.push(limit);
         if (offset !== undefined) {
-            query += ` OFFSET ${offset}`;
+            query += ` OFFSET $3`;
+            params.push(offset);
         }
     }
     
-    const posts = db.prepare(query).all(threadId) as (DbPost & { author_username: string; author_profile_image: string | null })[];
-    return posts;
+    const result = await pool.query(query, params);
+    return result.rows as (DbPost & { author_username: string; author_profile_image: string | null })[];
 }
 
-export function getTotalPostsInThread(threadId: number): number {
-    const row = db.prepare(`
+export async function getTotalPostsInThread(threadId: number): Promise<number> {
+    const result = await pool.query(`
         SELECT COUNT(*) as count 
-        FROM posts 
-        WHERE thread_id = ? AND is_deleted = 0
-    `).get(threadId) as { count: number };
-    return row.count;
+        FROM forum.posts 
+        WHERE thread_id = $1 AND is_deleted = false
+    `, [threadId]);
+    return parseInt(result.rows[0].count);
 }
 
-export function getThreadById(threadId: number): (DbThread & { author_username: string; category_name: string; category_slug: string }) | null {
-    const thread = db.prepare(`
-        SELECT threads.*, profiles.username as author_username, categories.name as category_name, categories.slug as category_slug
-        FROM threads
-        LEFT JOIN profiles ON threads.author_id = profiles.user_id
-        LEFT JOIN categories ON threads.category_id = categories.id
-        WHERE threads.id = ? AND threads.is_deleted = 0
-    `).get(threadId) as (DbThread & { author_username: string; category_name: string; category_slug: string }) | undefined;
-    return thread || null;
+export async function getThreadById(threadId: number): Promise<(DbThread & { author_username: string; category_name: string; category_slug: string }) | null> {
+    const result = await pool.query(`
+        SELECT t.*, u.username as author_username, c.name as category_name, c.slug as category_slug
+        FROM forum.threads t
+        LEFT JOIN public.users u ON t.author_id = u.id
+        LEFT JOIN forum.categories c ON t.category_id = c.id
+        WHERE t.id = $1 AND t.is_deleted = false
+    `, [threadId]);
+    return result.rows[0] || null;
 }
 
-export function createThread(threadData: {
+export async function createThread(threadData: {
     categoryId: string;
     title: string;
     authorId: string;
     isSticky: boolean;
     isLocked: boolean;
     initialContent: string;
-}): DbThread {
-    const stmt = db.prepare(`
-        INSERT INTO threads (category_id, title, author_id, is_sticky, is_locked, is_deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `);
-    
-    const result = stmt.run(
+}): Promise<DbThread> {
+    const result = await pool.query(`
+        INSERT INTO forum.threads (category_id, title, author_id, is_sticky, is_locked, is_deleted, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING *
+    `, [
         threadData.categoryId,
         threadData.title,
         threadData.authorId,
-        threadData.isSticky ? 1 : 0,
-        threadData.isLocked ? 1 : 0
-    );
+        threadData.isSticky,
+        threadData.isLocked
+    ]);
     
-    const threadId = result.lastInsertRowid as number;
+    const thread = result.rows[0] as DbThread;
     
     // Create the initial post
-    createPost({
-        thread_id: threadId,
+    await createPost({
+        thread_id: thread.id,
         author_id: threadData.authorId,
         content: threadData.initialContent
     });
     
-    // Return the created thread
-    const thread = db.prepare(`
-        SELECT * FROM threads WHERE id = ?
-    `).get(threadId) as DbThread;
-    
     return thread;
 }
 
-export function createPost(postData: { thread_id: number; author_id: string; content: string }): DbPost {
-    const stmt = db.prepare(`
-        INSERT INTO posts (thread_id, author_id, content, created_at, updated_at, is_deleted)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
-    `);
-    
-    const result = stmt.run(postData.thread_id, postData.author_id, postData.content);
+export async function createPost(postData: { thread_id: number; author_id: string; content: string }): Promise<DbPost> {
+    const result = await pool.query(`
+        INSERT INTO forum.posts (thread_id, author_id, content, created_at, updated_at, is_deleted)
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false)
+        RETURNING *
+    `, [postData.thread_id, postData.author_id, postData.content]);
     
     // Update thread's updated_at timestamp
-    db.prepare(`
-        UPDATE threads 
+    await pool.query(`
+        UPDATE forum.threads 
         SET updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-    `).run(postData.thread_id);
+        WHERE id = $1
+    `, [postData.thread_id]);
     
-    // Return the created post
-    return db.prepare(`
-        SELECT * FROM posts WHERE id = ?
-    `).get(result.lastInsertRowid) as DbPost;
+    return result.rows[0] as DbPost;
 }
-
-// Initialize seed data on first run
-import { seedDatabase } from './seed.js';
-seedDatabase();

@@ -59,7 +59,11 @@ export async function register(username: string, email: string, password: string
         body: JSON.stringify({ username, email, password }),
     });
     
-    if (!res.ok) return null;
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Auth server registration error:', res.status, errorText);
+        return null;
+    }
     return res.json();
 }
 
@@ -84,9 +88,30 @@ export async function logout(refreshToken: string): Promise<void> {
     });
 }
 
-export function requireUser(event: { locals: App.Locals }) {
-    if (!event.locals.user) {
-        throw error(401, 'Must be logged in');
+// Fetch user profile from auth service
+export async function getUserProfile(userId: string): Promise<{ user_id: string; username: string; email: string; role: string; profile_image: string | null } | null> {
+    try {
+        const res = await fetch(`${AUTH_SERVER}/profile/${userId}`);
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
     }
-    return event.locals.user;
+}
+
+// Update user profile in auth service
+export async function updateUserProfile(accessToken: string, profileImage: string): Promise<boolean> {
+    try {
+        const res = await fetch(`${AUTH_SERVER}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile_image: profileImage })
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }

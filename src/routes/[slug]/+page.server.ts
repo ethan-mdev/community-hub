@@ -4,7 +4,7 @@ import { error, redirect, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params }) => {
     try {
-        const category = getCategoryBySlug(params.slug);
+        const category = await getCategoryBySlug(params.slug);
         
         if (!category) {
             throw error(404, 'Category not found');
@@ -47,7 +47,7 @@ export const actions: Actions = {
         }
         
         // Get category to verify it exists
-        const category = getCategoryBySlug(params.slug);
+        const category = await getCategoryBySlug(params.slug);
         if (!category) {
             throw error(404, 'Category not found');
         }
@@ -58,7 +58,7 @@ export const actions: Actions = {
         
         let thread;
         try {
-            thread = createThread({
+            thread = await createThread({
                 categoryId: category.id,
                 title,
                 authorId: user.id,

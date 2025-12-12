@@ -54,6 +54,7 @@ export const actions: Actions = {
 
         const tokens = await register(username, email, password);
         if (!tokens) {
+            console.error('Registration failed for:', username, email);
             return fail(400, { error: 'Registration failed - username or email may already exist' });
         }
 

@@ -1,17 +1,17 @@
-import { getOrCreateProfile } from '$lib/server/db';
+import { getUserProfile } from '$lib/server/auth';
 
 export const load = async ({ locals }) => {
     if (!locals.user) {
         return { user: null };
     }
     
-    // Fetch or create profile to get profile_image
-    const profile = getOrCreateProfile(locals.user.id, locals.user.username);
+    // Fetch profile from auth service
+    const profile = await getUserProfile(locals.user.id);
     
     return {
         user: {
             ...locals.user,
-            profile_image: profile.profile_image
+            profile_image: profile?.profile_image || null
         }
     };
 };

@@ -3,9 +3,9 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
     try {
-        const categories = getCategoriesWithChildren();
-        const totalThreads = getTotalThreadCount();
-        const totalPosts = getTotalPostCount();
+        const categories = await getCategoriesWithChildren();
+        const totalThreads = await getTotalThreadCount();
+        const totalPosts = await getTotalPostCount();
         
         return {
             categories,

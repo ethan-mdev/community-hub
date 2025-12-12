@@ -5,7 +5,7 @@ import { error, redirect } from '@sveltejs/kit';
 export const load: PageServerLoad = async ({ params, url }) => {
     try {
         const threadId = Number(params.id);
-        const thread = getThreadById(threadId);
+        const thread = await getThreadById(threadId);
         
         if (!thread) {
             throw error(404, 'Thread not found');
@@ -14,11 +14,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
         // Pagination
         const page = Number(url.searchParams.get('page')) || 1;
         const postsPerPage = 10;
-        const totalPosts = getTotalPostsInThread(threadId);
+        const totalPosts = await getTotalPostsInThread(threadId);
         const totalPages = Math.ceil(totalPosts / postsPerPage);
         const offset = (page - 1) * postsPerPage;
         
-        const posts = getPostsByThreadId(threadId, postsPerPage, offset);
+        const posts = await getPostsByThreadId(threadId, postsPerPage, offset);
         
         return { 
             thread,
@@ -48,7 +48,7 @@ export const actions = {
         }
 
         // Check if thread exists and is not locked
-        const thread = getThreadById(threadId);
+        const thread = await getThreadById(threadId);
         if (!thread) {
             throw error(404, 'Thread not found');
         }
@@ -62,7 +62,7 @@ export const actions = {
         }
 
         try {
-            createPost({
+            await createPost({
                 thread_id: threadId,
                 author_id: user.id,
                 content

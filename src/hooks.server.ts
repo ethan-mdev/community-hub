@@ -1,6 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
 import { validateToken, refreshTokens, type AuthUser } from '$lib/server/auth.js';
-import { getOrCreateProfile } from '$lib/server/db.js';
 
 export const handle: Handle = async ({ event, resolve }) => {
     const accessToken = event.cookies.get('access_token');
@@ -37,14 +36,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
     
     if (user) {
-        // Sync profile to local DB (creates if not exists, updates username if changed)
-        const profile = getOrCreateProfile(user.id, user.username);
-        
         event.locals.user = {
             id: user.id,
             username: user.username,
             role: user.role,
-            profile_image: profile.profile_image
+            profile_image: null // Will be populated by layout.server.ts
         };
     }
     
