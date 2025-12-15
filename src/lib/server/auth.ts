@@ -1,5 +1,4 @@
 import * as jose from 'jose';
-import { error } from '@sveltejs/kit';
 
 const AUTH_SERVER = process.env.AUTH_SERVER_URL || 'http://localhost:8080';
 
@@ -61,7 +60,7 @@ export async function register(username: string, email: string, password: string
     
     if (!res.ok) {
         const errorText = await res.text();
-        console.error('Auth server registration error:', res.status, errorText);
+        console.error('Registration failed:', res.status, errorText);
         return null;
     }
     return res.json();

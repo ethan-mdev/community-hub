@@ -1,5 +1,3 @@
-import type { AuthenticatedUser } from '$lib/server/auth';
-
 declare global {
 	namespace App {
 		// interface Error {}
