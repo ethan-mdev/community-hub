@@ -14,7 +14,6 @@ The original monolithic Astro project grew complex as features expanded.
 This SvelteKit rewrite focuses on:
 
 - Clean separation between features (authentication, forum, UI)
-- A simple, embedded SQLite backend that works immediately with no external services
 - A structure optimized for future migration to a real centralized auth system
 - Better maintainability and clarity across the codebase
 - A forum system that can evolve independently from the rest of the MMORPG tooling
@@ -41,13 +40,13 @@ Even though the original concept came from a private-server project, this repo i
 
 ## Current Features
 
-### ✔ Authentication
+### Authentication
 - Username + password login  
-- SQLite sessions stored in cookies  
+- JWT validation from authentication server
 - Protected routes  
 - User state available across layouts  
 
-### ✔ Forum Core
+### Forum Core
 - Category → Thread → Post structure  
 - Dynamic routing (`/[slug]/[id]`)  
 - Thread header with author + metadata  
@@ -55,7 +54,7 @@ Even though the original concept came from a private-server project, this repo i
 - Reply form with SvelteKit Actions  
 - Server-side validation and redirects  
 
-### ✔ Visual Design
+### Visual Design
 - TailwindCSS dark theme styled after classic fantasy MMO forums  
 - Avatar column layout for posts  
 - Gradient thread headers  
@@ -81,16 +80,10 @@ They are included purely for demonstration purposes inside this development proj
 
 Planned enhancements for future iterations of this project:
 
-### 🔧 Authentication / Users
-- Centralized auth service integration
-
 ### 🎭 Roles & Permissions
-- Role system (Admin, Moderator, GM, Member, etc.)  
-- Role badges with colors/icons  
 - Permission gating:
   - Lock/unlock threads  
-  - Sticky/unsticky  
-  - Move threads between categories  
+  - Sticky/unsticky 
   - Edit/delete posts (with audit logs)  
 
 ### 📝 Post Features
@@ -101,10 +94,9 @@ Planned enhancements for future iterations of this project:
 - Reactions/emotes  
 
 ### 🧹 Moderation Tools
-- Soft deletion  
-- Report system  
-- Moderator dashboard  
-- Silent edits + edit history  
+- Soft deletion
+- User ban/timeout functionality
+- Report system
 
 ### 📄 Thread Features
 - Thread tags
