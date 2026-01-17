@@ -2,6 +2,7 @@
     import { enhance } from '$app/forms';
     import { browser } from '$app/environment';
     import ErrorMessage from './ErrorMessage.svelte';
+    import BBCodeEditor from './BBCodeEditor.svelte';
     
     let { 
         isOpen = $bindable(),
@@ -19,6 +20,7 @@
     
     let dialog: HTMLDialogElement;
     let isSubmitting = $state(false);
+    let content = $state(form?.content ?? '');
     
     // Watch isOpen changes to control dialog
     $effect(() => {
@@ -118,14 +120,8 @@
                 <label for="content" class="block text-sm font-medium text-gray-300 mb-2">
                     Initial Post <span class="text-red-400">*</span>
                 </label>
-                <textarea
-                    id="content"
-                    name="content"
-                    rows="8"
-                    required
-                    placeholder="Start the conversation..."
-                    class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition text-gray-200 placeholder-gray-500 resize-y"
-                >{form?.content ?? ''}</textarea>
+                <input type="hidden" name="content" value={content} />
+                <BBCodeEditor bind:value={content} placeholder="Start the conversation..." minHeight="250px" />
                 <div class="text-xs text-gray-500 mt-1">
                     Provide context and details to encourage meaningful discussion
                 </div>
@@ -151,7 +147,7 @@
                     
                     <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !content.trim()}
                         class="px-6 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-500/50 text-black font-semibold rounded-lg transition flex items-center gap-2"
                     >
                         {#if isSubmitting}

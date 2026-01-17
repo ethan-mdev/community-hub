@@ -1,6 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import ErrorMessage from './ErrorMessage.svelte';
+    import BBCodeEditor from './BBCodeEditor.svelte';
     
     let { user, threadId, thread, form } = $props<{ 
         user: any; 
@@ -10,6 +11,7 @@
     }>();
     
     let isSubmitting = $state(false);
+    let content = $state('');
 </script>
 
 {#if user}
@@ -32,7 +34,11 @@
             isSubmitting = true;
             return async ({ update }) => {
                 isSubmitting = false;
-                await update();
+                await update({ reset: false });
+                // Clear editor on successful submission
+                if (!form?.error) {
+                    content = '';
+                }
             };
         }} 
         class="mt-10"
@@ -43,13 +49,8 @@
             <ErrorMessage error={form?.error} />
 
             <div>
-                <textarea
-                    name="content"
-                    rows="6"
-                    required
-                    placeholder="Write your reply..."
-                    class="w-full rounded-lg border border-neutral-700 bg-neutral-800 p-3 text-gray-200 placeholder-gray-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:outline-none transition"
-                ></textarea>
+                <input type="hidden" name="content" value={content} />
+                <BBCodeEditor bind:value={content} placeholder="Write your reply..." />
             </div>
 
             <div class="flex justify-between items-center">
@@ -60,7 +61,7 @@
                 <button
                     type="submit"
                     formaction="?/reply"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !content.trim()}
                     class="rounded-lg bg-amber-500 px-6 py-2 font-semibold text-black hover:bg-amber-400 disabled:bg-amber-500/50 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
                     {#if isSubmitting}

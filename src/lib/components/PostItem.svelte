@@ -1,5 +1,9 @@
 <script lang="ts">
-  export let post;
+  import { parseBBCode } from '$lib/utils/bbcode';
+  
+  let { post } = $props();
+  
+  let contentHtml = $derived(parseBBCode(post.content || ''));
 </script>
 
 <div class="rounded-xl bg-neutral-900/80 ring-1 ring-neutral-800 overflow-hidden">
@@ -43,8 +47,8 @@
         Posted {new Date(post.created_at).toLocaleString()}
       </div>
 
-      <div class="prose prose-invert max-w-none text-gray-200 whitespace-pre-line">
-        {post.content}
+      <div class="prose prose-invert max-w-none text-gray-200">
+        {@html contentHtml}
       </div>
     </div>
 

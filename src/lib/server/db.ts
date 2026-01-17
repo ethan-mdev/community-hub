@@ -1,8 +1,9 @@
 import pg from 'pg';
+import { DATABASE_URL } from '$env/static/private';
 const { Pool } = pg;
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5432/postgres'
+    connectionString: DATABASE_URL
 });
 
 // Set search path to forum schema by default
