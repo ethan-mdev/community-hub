@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AuthUser } from '$lib/server/auth';
 	import ProfileModal from './ProfileModal.svelte';
+	import { goto } from '$app/navigation';
 
 	let {
 		totalThreads = 0,
@@ -13,6 +14,7 @@
 	} = $props();
 
 	let showProfileModal = $state(false);
+	let searchQuery = $state('');
 
 	function openProfileModal() {
 		if (user) {
@@ -22,6 +24,19 @@
 
 	function closeProfileModal() {
 		showProfileModal = false;
+	}
+
+	function handleSearch(event?: Event) {
+		event?.preventDefault();
+		if (searchQuery.trim()) {
+			goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+		}
+	}
+
+	function handleSearchKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			handleSearch();
+		}
 	}
 </script>
 
@@ -43,18 +58,21 @@
 			</div>
 		</div>
 		<div class="flex items-center gap-3">
-			<input
-				type="text"
-				placeholder="Search forums..."
-				class="rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-				id="searchInput"
-			/>
-			<button
-				id="searchBtn"
-				class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-amber-600"
-			>
-				Search
-			</button>
+			<form onsubmit={handleSearch} class="flex items-center gap-3">
+				<input
+					type="text"
+					bind:value={searchQuery}
+					onkeydown={handleSearchKeydown}
+					placeholder="Search forums..."
+					class="rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+				/>
+				<button
+					type="submit"
+					class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-amber-600"
+				>
+					Search
+				</button>
+			</form>
 
 			<div class="ml-3 flex items-center gap-3 border-l border-neutral-700 pl-3">
 				{#if user}
