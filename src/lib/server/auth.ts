@@ -1,6 +1,7 @@
 import * as jose from 'jose';
+import { AUTH_SERVER_URL } from '$env/static/private';
 
-const AUTH_SERVER = process.env.AUTH_SERVER_URL || 'http://localhost:8080';
+const AUTH_SERVER = AUTH_SERVER_URL || 'http://localhost:8080';
 
 // Cache JWKS for performance
 let jwks: jose.JWTVerifyGetKey | null = null;

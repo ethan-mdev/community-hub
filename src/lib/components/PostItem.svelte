@@ -15,7 +15,25 @@
             <img src="/avatars/avatar-1.png" alt="Default Avatar" class="w-16 h-16 rounded-full object-cover" />
           {/if}
         </div>
-        <h3 class="font-semibold text-amber-400 mb-1">{post.author_username}</h3>
+        <h3 class="font-semibold text-amber-400 mb-2">{post.author_username}</h3>
+        
+        <div class="mb-2">
+          {#if post.author_role === 'admin'}
+            <span class="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-400">
+              ADMIN
+            </span>
+          {:else}
+            <span class="rounded bg-slate-500/20 px-2 py-0.5 text-xs font-semibold text-slate-300">
+              MEMBER
+            </span>
+          {/if}
+        </div>
+        
+        {#if post.author_post_count !== undefined}
+          <div class="text-xs text-gray-400">
+            <span class="font-medium">{post.author_post_count}</span> {post.author_post_count === 1 ? 'post' : 'posts'}
+          </div>
+        {/if}
       </div>
     </div>
 

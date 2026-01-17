@@ -110,9 +110,13 @@ export async function getTotalPostCount(): Promise<number> {
     return parseInt(result.rows[0].count);
 }
 
-export async function getPostsByThreadId(threadId: number, limit?: number, offset?: number): Promise<(DbPost & { author_username: string; author_profile_image: string | null })[]> {
+export async function getPostsByThreadId(threadId: number, limit?: number, offset?: number): Promise<(DbPost & { author_username: string; author_profile_image: string | null; author_post_count: number; author_role: string })[]> {
     let query = `
-        SELECT p.*, u.username as author_username, u.profile_image as author_profile_image
+        SELECT p.*, 
+               u.username as author_username, 
+               u.profile_image as author_profile_image,
+               u.role as author_role,
+               (SELECT COUNT(*) FROM forum.posts WHERE author_id = p.author_id AND is_deleted = false) as author_post_count
         FROM forum.posts p
         LEFT JOIN public.users u ON p.author_id = u.id
         WHERE p.thread_id = $1 AND p.is_deleted = false
@@ -131,7 +135,7 @@ export async function getPostsByThreadId(threadId: number, limit?: number, offse
     }
     
     const result = await pool.query(query, params);
-    return result.rows as (DbPost & { author_username: string; author_profile_image: string | null })[];
+    return result.rows as (DbPost & { author_username: string; author_profile_image: string | null; author_post_count: number; author_role: string })[];
 }
 
 export async function getTotalPostsInThread(threadId: number): Promise<number> {
