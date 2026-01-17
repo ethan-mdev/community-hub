@@ -41,15 +41,14 @@
             </span>
           </div>
         </div>
-        
         {#if post.author_post_count !== undefined}
-          <div class="text-xs text-gray-400">
-            <span class="font-medium">{post.author_post_count}</span> {post.author_post_count === 1 ? 'post' : 'posts'}
+          <div class="text-xs font-medium text-gray-400 mt-4 flex flex-col space-y-1">
+            <span>Posts: {post.author_post_count}</span>
+            <span>Joined: {new Date(post.author_joined_at).toLocaleDateString()}</span>
           </div>
         {/if}
       </div>
     </div>
-
     <!-- Content -->
     <div class="flex-1 p-6">
       <div class="text-sm text-gray-400 mb-4">

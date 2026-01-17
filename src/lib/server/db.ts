@@ -117,6 +117,7 @@ export async function getPostsByThreadId(threadId: number, limit?: number, offse
                u.username as author_username, 
                u.profile_image as author_profile_image,
                u.role as author_role,
+               u.created_at as author_joined_at,
                (SELECT COUNT(*) FROM forum.posts WHERE author_id = p.author_id AND is_deleted = false) as author_post_count
         FROM forum.posts p
         LEFT JOIN public.users u ON p.author_id = u.id
