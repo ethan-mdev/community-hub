@@ -1,9 +1,11 @@
 <script lang="ts">
   import { parseBBCode } from '$lib/utils/bbcode';
+  import { getRankByPostCount } from '$lib/utils/ranks';
   
   let { post } = $props();
   
   let contentHtml = $derived(parseBBCode(post.content || ''));
+  let rank = $derived(getRankByPostCount(post.author_post_count || 0));
 </script>
 
 <div class="rounded-xl bg-neutral-900/80 ring-1 ring-neutral-800 overflow-hidden">
@@ -21,7 +23,7 @@
         </div>
         <h3 class="font-semibold text-amber-400 mb-2">{post.author_username}</h3>
         
-        <div class="mb-2">
+        <div class="mb-2 space-y-1">
           {#if post.author_role === 'admin'}
             <span class="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-400">
               ADMIN
@@ -31,6 +33,13 @@
               MEMBER
             </span>
           {/if}
+          
+          <!-- Rank Badge -->
+          <div>
+            <span class="rounded {rank.bgColor} px-2 py-0.5 text-xs font-semibold {rank.color}">
+              {rank.name}
+            </span>
+          </div>
         </div>
         
         {#if post.author_post_count !== undefined}
