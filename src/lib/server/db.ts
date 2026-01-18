@@ -34,6 +34,10 @@ export type DbThread = {
     is_sticky: boolean;
     is_deleted: boolean;
     author_username?: string;
+    reply_count?: number;
+    last_reply_at?: string;
+    last_reply_username?: string;
+    view_count?: number;
 };
 
 export type DbPost = {
@@ -71,10 +75,21 @@ export async function getCategoryBySlug(slug: string): Promise<(DbCategory & { t
     if (!category) return null;
     
     const threadsResult = await pool.query(`
-        SELECT t.*, u.username as author_username
+        SELECT 
+            t.*,
+            u.username as author_username,
+            u.profile_image as author_profile_image,
+            COUNT(p.id) as reply_count,
+            MAX(p.created_at) as last_reply_at,
+            (SELECT u2.username FROM forum.posts p2 
+             LEFT JOIN public.users u2 ON p2.author_id = u2.id 
+             WHERE p2.thread_id = t.id AND p2.is_deleted = false 
+             ORDER BY p2.created_at DESC LIMIT 1) as last_reply_username
         FROM forum.threads t
         LEFT JOIN public.users u ON t.author_id = u.id
+        LEFT JOIN forum.posts p ON p.thread_id = t.id AND p.is_deleted = false
         WHERE t.category_id = $1 AND t.is_deleted = false
+        GROUP BY t.id, u.username, u.profile_image
         ORDER BY t.is_sticky DESC, t.updated_at DESC
     `, [category.id]);
     
