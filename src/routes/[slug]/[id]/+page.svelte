@@ -24,7 +24,7 @@
 	<!-- Posts -->
 	<div class="mt-6 space-y-6">
 		{#each data.posts as post, i}
-			<PostItem post={post} />
+			<PostItem post={post} user={data.user} />
 		{/each}
 	</div>
 
