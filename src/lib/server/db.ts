@@ -374,3 +374,23 @@ export async function toggleReaction(postId: number, userId: string, reactionTyp
         return 'added';
     }
 }
+
+// --- Badge functions ---
+export type Badge = {
+    id: number;
+    name: string;
+    bg_color: string;
+    text_color: string;
+};
+
+export async function getUserBadges(userId: string): Promise<Badge[]> {
+    const result = await pool.query(`
+        SELECT b.id, b.name, b.bg_color, b.text_color
+        FROM forum.user_badges ub
+        JOIN forum.badges b ON ub.badge_id = b.id
+        WHERE ub.user_id = $1
+        ORDER BY ub.awarded_at DESC
+    `, [userId]);
+    
+    return result.rows;
+}

@@ -1,4 +1,4 @@
-import { getPostsByThreadId, getThreadById, createPost, getTotalPostsInThread, getPostReactions, getUserReactionsForPost, toggleReaction, type ReactionType } from '$lib/server/db.js';
+import { getPostsByThreadId, getThreadById, createPost, getTotalPostsInThread, getPostReactions, getUserReactionsForPost, toggleReaction, getUserBadges, type ReactionType } from '$lib/server/db.js';
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 
@@ -20,11 +20,12 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
         
         const posts = await getPostsByThreadId(threadId, postsPerPage, offset);
         
-        // Get reactions for each post
+        // Get reactions and badges for each post
         const postsWithReactions = await Promise.all(posts.map(async (post) => {
             const reactions = await getPostReactions(post.id);
             const userReactions = locals.user ? await getUserReactionsForPost(post.id, locals.user.id) : [];
-            return { ...post, reactions, userReactions };
+            const badges = await getUserBadges(post.author_id);
+            return { ...post, reactions, userReactions, badges };
         }));
         
         return { 

@@ -57,6 +57,17 @@
               {rank.name}
             </span>
           </div>
+          
+          <!-- Custom Badges -->
+          {#if post.badges && post.badges.length > 0}
+            {#each post.badges as badge}
+              <div>
+                <span class="rounded {badge.bg_color} px-2 py-0.5 text-xs font-semibold {badge.text_color}">
+                  {badge.name}
+                </span>
+              </div>
+            {/each}
+          {/if}
         </div>
         {#if post.author_post_count !== undefined}
           <div class="text-xs font-medium text-gray-400 mt-4 flex flex-col space-y-1">
