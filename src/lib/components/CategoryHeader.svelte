@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { DbCategory } from '$lib/server/db';
+    import type { DbCategory } from '$lib/server/db/types';
     import type { AuthUser } from "$lib/server/auth";
     import NewThreadModal from './NewThreadModal.svelte';
     
@@ -28,13 +28,13 @@
             <!-- New thread button -->
             {#if user}
                 <button
-                    onclick={() => category.is_locked ? null : showNewThreadModal = true}
-                    disabled={category.is_locked}
-                    class="flex items-center gap-2 rounded-lg px-6 py-3 font-semibold transition {category.is_locked 
+                    onclick={() => (category.is_locked && user?.role !== 'admin') ? null : showNewThreadModal = true}
+                    disabled={category.is_locked && user?.role !== 'admin'}
+                    class="flex items-center gap-2 rounded-lg px-6 py-3 font-semibold transition {(category.is_locked && user?.role !== 'admin') 
                         ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' 
                         : 'bg-amber-500 text-neutral-900 hover:bg-amber-600'}"
                     type="button"
-                    title={category.is_locked ? 'This category is locked' : 'Create a new thread'}
+                    title={(category.is_locked && user?.role !== 'admin') ? 'This category is locked' : 'Create a new thread'}
                 >
                     {#if category.is_locked}
                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">

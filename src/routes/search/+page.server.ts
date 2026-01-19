@@ -1,4 +1,4 @@
-import { searchForum, getSearchResultCount } from '$lib/server/db.js';
+import { searchForum, getSearchResultCount } from '$lib/server/db/search.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

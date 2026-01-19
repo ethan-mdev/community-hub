@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { DbThread } from '$lib/server/db';
+    import type { DbThread } from '$lib/server/db/types';
     import { timeAgo } from '$lib/utils/time';
     
     let { threads, categorySlug }: { threads: DbThread[], categorySlug: string } = $props();

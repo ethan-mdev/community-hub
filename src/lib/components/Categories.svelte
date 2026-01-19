@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { DbCategory } from '$lib/server/db';
+    import type { DbCategory } from '$lib/server/db/types';
     
     type CategoryWithChildren = DbCategory & { children?: DbCategory[]; thread_count?: number };
     let { categories = [] }: { categories: CategoryWithChildren[] } = $props();

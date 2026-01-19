@@ -1,4 +1,6 @@
-import { getCategoriesWithChildren, getTotalThreadCount, getTotalPostCount } from '$lib/server/db.js';
+import { getCategoriesWithChildren } from '$lib/server/db/categories.js';
+import { getTotalThreadCount } from '$lib/server/db/threads.js';
+import { getTotalPostCount } from '$lib/server/db/posts.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {

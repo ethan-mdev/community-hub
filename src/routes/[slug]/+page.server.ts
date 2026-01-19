@@ -1,4 +1,5 @@
-import { getCategoryBySlug, createThread } from '$lib/server/db.js';
+import { getCategoryBySlug } from '$lib/server/db/categories.js';
+import { createThread } from '$lib/server/db/threads.js';
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 
@@ -50,6 +51,11 @@ export const actions: Actions = {
         const category = await getCategoryBySlug(params.slug);
         if (!category) {
             throw error(404, 'Category not found');
+        }
+        
+        // Check if category is locked (admins can bypass)
+        if (category.is_locked && user.role !== 'admin') {
+            return fail(403, { error: 'This category is locked', title, content });
         }
         
         // Only admins can create sticky/locked threads (remove for now)

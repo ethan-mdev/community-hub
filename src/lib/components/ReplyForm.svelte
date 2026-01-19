@@ -15,7 +15,7 @@
 </script>
 
 {#if user}
-    {#if thread.is_locked}
+    {#if thread.is_locked && user?.role !== 'admin'}
         <div class="mt-10 rounded-xl bg-neutral-900/80 p-6 ring-1 ring-neutral-800">
             <div class="flex items-center gap-3 text-amber-500">
                 <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">

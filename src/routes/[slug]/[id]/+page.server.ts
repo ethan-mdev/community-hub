@@ -1,4 +1,8 @@
-import { getPostsByThreadId, getThreadById, createPost, getTotalPostsInThread, getPostReactions, getUserReactionsForPost, toggleReaction, getUserBadges, type ReactionType } from '$lib/server/db.js';
+import { getPostsByThreadId, createPost, getTotalPostsInThread } from '$lib/server/db/posts.js';
+import { getThreadById } from '$lib/server/db/threads.js';
+import { getPostReactions, getUserReactionsForPost, toggleReaction } from '$lib/server/db/reactions.js';
+import { getUserBadges } from '$lib/server/db/badges.js';
+import type { ReactionType } from '$lib/server/db/types.js';
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 
@@ -62,7 +66,7 @@ export const actions = {
             throw error(404, 'Thread not found');
         }
 
-        if (thread.is_locked) {
+        if (thread.is_locked && user.role !== 'admin') {
             return { success: false, error: 'This thread is locked and no longer accepting replies' };
         }
 
