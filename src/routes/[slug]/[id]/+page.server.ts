@@ -1,5 +1,5 @@
 import { getPostsByThreadId, createPost, getTotalPostsInThread } from '$lib/server/db/posts.js';
-import { getThreadById } from '$lib/server/db/threads.js';
+import { getThreadById, toggleThreadSticky, toggleThreadLock, deleteThread as deleteThreadDb } from '$lib/server/db/threads.js';
 import { getPostReactions, getUserReactionsForPost, toggleReaction } from '$lib/server/db/reactions.js';
 import { getUserBadges } from '$lib/server/db/badges.js';
 import type { ReactionType } from '$lib/server/db/types.js';
@@ -111,5 +111,56 @@ export const actions = {
             console.error('Error toggling reaction:', err);
             return { success: false, error: 'Failed to toggle reaction' };
         }
+    },
+    
+    toggleSticky: async ({ params, locals }) => {
+        const user = locals.user;
+        const threadId = Number(params.id);
+
+        if (!user || user.role !== 'admin') {
+            throw error(403, 'Admin access required');
+        }
+
+        try {
+            await toggleThreadSticky(threadId);
+            return { success: true };
+        } catch (err) {
+            console.error('Error toggling sticky:', err);
+            return { success: false, error: 'Failed to toggle sticky' };
+        }
+    },
+    
+    toggleLock: async ({ params, locals }) => {
+        const user = locals.user;
+        const threadId = Number(params.id);
+
+        if (!user || user.role !== 'admin') {
+            throw error(403, 'Admin access required');
+        }
+
+        try {
+            await toggleThreadLock(threadId);
+            return { success: true };
+        } catch (err) {
+            console.error('Error toggling lock:', err);
+            return { success: false, error: 'Failed to toggle lock' };
+        }
+    },
+    
+    deleteThread: async ({ params, locals }) => {
+        const user = locals.user;
+        const threadId = Number(params.id);
+
+        if (!user || user.role !== 'admin') {
+            throw error(403, 'Admin access required');
+        }
+
+        const thread = await getThreadById(threadId);
+        if (!thread) {
+            throw error(404, 'Thread not found');
+        }
+
+        await deleteThreadDb(threadId);
+        throw redirect(303, `/${thread.category_slug}`);
     }
 };

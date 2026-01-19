@@ -19,7 +19,7 @@
 	/>
 
 	<!-- Thread header -->
-	<ThreadHeader thread={data.thread} />
+	<ThreadHeader thread={data.thread} user={data.user} />
 
 	<!-- Posts -->
 	<div class="mt-6 space-y-6">

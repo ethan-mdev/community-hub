@@ -3,7 +3,7 @@ import type { DbCategory, DbThread } from './types.js';
 
 async function getNumberOfThreads(categoryId: string): Promise<number> {
     const result = await pool.query(`
-        SELECT COUNT(*) as count FROM forum.threads WHERE category_id = $1
+        SELECT COUNT(*) as count FROM forum.threads WHERE category_id = $1 AND is_deleted = false
     `, [categoryId]);
     return parseInt(result.rows[0].count);
 }

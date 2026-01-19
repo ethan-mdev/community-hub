@@ -58,3 +58,27 @@ export async function createThread(threadData: {
     
     return thread;
 }
+
+export async function toggleThreadSticky(threadId: number): Promise<void> {
+    await pool.query(`
+        UPDATE forum.threads 
+        SET is_sticky = NOT is_sticky 
+        WHERE id = $1
+    `, [threadId]);
+}
+
+export async function toggleThreadLock(threadId: number): Promise<void> {
+    await pool.query(`
+        UPDATE forum.threads 
+        SET is_locked = NOT is_locked 
+        WHERE id = $1
+    `, [threadId]);
+}
+
+export async function deleteThread(threadId: number): Promise<void> {
+    await pool.query(`
+        UPDATE forum.threads 
+        SET is_deleted = true 
+        WHERE id = $1
+    `, [threadId]);
+}
