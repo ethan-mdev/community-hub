@@ -62,7 +62,7 @@
           {#if post.badges && post.badges.length > 0}
             {#each post.badges as badge}
               <div>
-                <span class="rounded {badge.bg_color} px-2 py-0.5 text-xs font-semibold {badge.text_color}">
+                <span class="rounded px-2 py-0.5 text-xs font-semibold" style="{badge.bg_color}; {badge.text_color}">
                   {badge.name}
                 </span>
               </div>
